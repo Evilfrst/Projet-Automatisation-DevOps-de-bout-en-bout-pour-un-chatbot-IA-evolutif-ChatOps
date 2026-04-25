@@ -24,6 +24,16 @@ def chat(message: Message):
     response = get_response(message.text)
     return {"response": response}
 
+from prometheus_client import Histogram
+
+REQUEST_LATENCY = Histogram("request_latency_seconds", "Request latency")
+
+@app.post("/chat")
+def chat(message: Message):
+    with REQUEST_LATENCY.time():
+        response = get_response(message.text)
+    return {"response": response}
+
 # 🔥 Endpoint Prometheus
 @app.get("/metrics")
 def metrics():
