@@ -1,4 +1,4 @@
-# 🤖 ChatOps AI DevOps Starter
+# 🤖 ChatOps AI DevOps 
 
 Simple chatbot API with DevOps pipeline.
 
