@@ -1,0 +1,19 @@
+{
+  "title": "ChatOps Monitoring Dashboard",
+  "panels": [
+    {
+      "title": "CPU Usage",
+      "type": "graph"
+    },
+    {
+      "title": "Memory Usage",
+      "type": "graph"
+    },
+    {
+      "title": "Backend Availability",
+      "type": "stat"
+    }
+  ],
+  "schemaVersion": 38,
+  "version": 1
+}

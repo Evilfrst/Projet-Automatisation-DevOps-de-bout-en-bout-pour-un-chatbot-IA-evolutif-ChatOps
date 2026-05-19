@@ -1,0 +1,47 @@
+
+services:
+
+  backend:
+    build: ./backend
+
+    container_name: chatops-backend
+
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - .env
+
+  frontend:
+    build: ./frontend
+
+    container_name: chatops-frontend
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      - backend
+
+  prometheus:
+    image: prom/prometheus
+
+    container_name: prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+
+    container_name: grafana
+
+    ports:
+      - "3001:3000"
+
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
