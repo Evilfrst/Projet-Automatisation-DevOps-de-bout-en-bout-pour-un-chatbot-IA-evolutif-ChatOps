@@ -15,5 +15,5 @@ def test_health():
 
 
 def test_chat():
-    response = client.post("/chat", json={"prompt": "hello"})
+    response = client.post("/chat?prompt=hello")
     assert response.status_code == 200
