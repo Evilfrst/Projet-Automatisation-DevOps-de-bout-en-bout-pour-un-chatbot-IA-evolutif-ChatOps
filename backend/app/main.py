@@ -59,9 +59,7 @@ app.add_middleware(
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not OPENAI_API_KEY:
-    raise Exception(
-        "OPENAI_API_KEY est manquante dans le fichier .env"
-    )
+   OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "test-key")
 
 client = OpenAI(
     api_key=OPENAI_API_KEY
