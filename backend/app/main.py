@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from dotenv import load_dotenv
 from prometheus_fastapi_instrumentator import Instrumentator
 from openai import OpenAI
@@ -72,13 +72,7 @@ client = OpenAI(
 
 class ChatRequest(BaseModel):
 
-    message: str = Field(
-        ...,
-        min_length=1,
-        max_length=4000,
-        description="Message utilisateur"
-    )
-
+    prompt: str
 
 # ==================================================
 # ROOT ENDPOINT
@@ -113,39 +107,9 @@ async def health():
 @app.post("/chat")
 async def chat(data: ChatRequest):
 
-    try:
-
-        user_message = data.message
-
-        logger.info(f"New message received : {user_message}")
-
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {
-                    "role": "user",
-                    "content": user_message
-                }
-            ]
-        )
-
-        ai_response = response.choices[0].message.content
-
-        logger.info("OpenAI response generated successfully")
-
-        return {
-            "success": True,
-            "response": ai_response
-        }
-
-    except Exception as e:
-
-        logger.error(f"ERREUR OPENAI : {str(e)}")
-
-        return {
-            "success": False,
-            "response": f"Erreur OpenAI : {str(e)}"
-        }
+    return {
+        "response": f"Hello {data.prompt}"
+    }
     
 @app.get("/")
 async def root():
