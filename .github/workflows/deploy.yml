@@ -1,4 +1,4 @@
-name: Deploy ChatOps Project
+name: Deploy
 
 on:
   push:
@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Copy files to EC2
-        uses: appleboy/scp-action@master
+      - name: SCP files
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: "15.237.255.117"
           username: "ubuntu"
@@ -22,8 +22,8 @@ jobs:
           source: "."
           target: "/home/ubuntu/chatops"
 
-      - name: Execute remote commands
-        uses: appleboy/ssh-action@master
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: "15.237.255.117"
           username: "ubuntu"
