@@ -13,25 +13,27 @@ steps:
   - name: Checkout repository
     uses: actions/checkout@v4
 
+  - name: Debug Secrets
+    run: |
+      echo "HOST=${{ secrets.HOST }}"
+
   - name: Copy files to EC2
     uses: appleboy/scp-action@master
     with:
-      host: ${{ secrets.EC2_HOST }}
+      host: ${{ secrets.HOST }}
       username: ubuntu
-      key: ${{ secrets.EC2_SSH_KEY }}
+      key: ${{ secrets.SSH_KEY }}
       source: "."
       target: "/home/ubuntu/chatops"
 
   - name: Execute remote commands
     uses: appleboy/ssh-action@master
     with:
-      host: ${{ secrets.EC2_HOST }}
+      host: ${{ secrets.HOST }}
       username: ubuntu
-      key: ${{ secrets.EC2_SSH_KEY }}
+      key: ${{ secrets.SSH_KEY }}
       script: |
         cd /home/ubuntu/chatops
         docker compose down
-        docker system prune -af
-        docker compose up -d --build        
+        docker compose up -d --build
 ```
-  
