@@ -60,3 +60,18 @@ jobs:
             cd /home/ubuntu/chatops
             sudo docker compose down
             sudo docker compose up -d --build
+            
+      - name: Create .env file on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+            host: ${{ secrets.HOST }}
+            username: ubuntu
+            key: ${{ secrets.SSH_KEY }}
+            script: |
+              mkdir -p /home/ubuntu/chatops
+              cd /home/ubuntu/chatops
+              cat > .env <<EOF
+              OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+              ENVIRONMENT=production
+              PORT=8000
+              EOF
