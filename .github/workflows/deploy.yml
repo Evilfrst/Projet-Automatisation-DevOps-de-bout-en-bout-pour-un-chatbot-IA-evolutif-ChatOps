@@ -16,7 +16,7 @@ jobs:
       - name: SCP files
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: "15.237.255.117"
+          host: ${{ secrets.HOST }}
           username: "ubuntu"
           key: ${{ secrets.SSH_KEY }}
           source: "."
@@ -25,7 +25,7 @@ jobs:
       - name: SSH deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: "15.237.255.117"
+          host: ${{ secrets.HOST }}
           username: "ubuntu"
           key: ${{ secrets.SSH_KEY }}
           script: |
