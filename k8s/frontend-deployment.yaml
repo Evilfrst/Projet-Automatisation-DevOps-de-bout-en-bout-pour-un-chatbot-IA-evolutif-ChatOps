@@ -17,5 +17,8 @@ spec:
 
     spec:
       containers:
-        - name: frontend
-          image: chatbot-frontend:lat
+      - name: frontend
+        image: tondockerhub/chatops-frontend:latest
+
+        ports:
+        - containerPort: 3000
