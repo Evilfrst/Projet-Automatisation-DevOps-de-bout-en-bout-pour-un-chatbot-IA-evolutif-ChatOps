@@ -17,8 +17,8 @@ spec:
 
     spec:
       containers:
-        - name: backend
-          image: chatbot-backend:latest
+      - name: backend
+        image: tondockerhub/chatops-backend:latest
 
-          ports:
-            - containerPort: 8000
+        ports:
+        - containerPort: 8000
