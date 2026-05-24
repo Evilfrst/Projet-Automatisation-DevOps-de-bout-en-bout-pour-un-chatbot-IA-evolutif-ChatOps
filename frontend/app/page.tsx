@@ -31,7 +31,7 @@ export default function Home() {
     try {
 
       const response = await fetch(
-        'http://localhost:8000/chat',
+        'http://backend:8000/chat',
         {
           method: 'POST',
 
