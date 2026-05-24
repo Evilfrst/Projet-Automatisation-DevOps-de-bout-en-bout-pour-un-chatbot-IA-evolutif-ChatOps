@@ -1,7 +1,3 @@
-# ChatOps AI - DevOps Automation Project
-<img width="1536" height="1024" alt="ChatGPT Image 14 mai 2026, 14_29_31" src="https://github.com/user-attachments/assets/22c58201-4b21-4e16-a552-0167dd5c7891" />
-
-
 # 🚀 ChatOps AI — DevSecOps Automation Platform
 
 ![ChatOps Banner](https://github.com/user-attachments/assets/22c58201-4b21-4e16-a552-0167dd5c7891)
