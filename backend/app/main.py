@@ -109,6 +109,12 @@ async def chat(data: ChatRequest):
 
     try:
 
+        if not OPENAI_API_KEY:
+
+            return {
+                "response": f"Mock response: {data.prompt}"
+            }
+
         response = client.chat.completions.create(
             model="gpt-4.1-mini",
             messages=[
@@ -127,10 +133,9 @@ async def chat(data: ChatRequest):
 
         logger.error(str(e))
 
-        raise HTTPException(
-            status_code=500,
-            detail=f"OpenAI Error: {str(e)}"
-        )
+        return {
+            "response": "AI service unavailable"
+        }
     
 @app.get("/")
 async def root():
