@@ -9,10 +9,11 @@ export default function ChatPage() {
 
   const sendMessage = async () => {
     const res = await axios.get(
-      axios.post('http://35.181.183.50:8000/chat', {
-        prompt
+     const res = await axios.post('http://35.181.183.50:8000/chat', {
+  prompt
 })
-    setResponse(res.data.response)
+
+setResponse(res.data.response)
   }
 
   return (
