@@ -107,9 +107,30 @@ async def health():
 @app.post("/chat")
 async def chat(data: ChatRequest):
 
-    return {
-        "response": f"Hello {data.prompt}"
-    }
+    try:
+
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": data.prompt
+                }
+            ]
+        )
+
+        return {
+            "response": response.choices[0].message.content
+        }
+
+    except Exception as e:
+
+        logger.error(str(e))
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"OpenAI Error: {str(e)}"
+        )
     
 @app.get("/")
 async def root():
