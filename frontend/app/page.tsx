@@ -31,7 +31,7 @@ export default function Home() {
     try {
 
       const response = await fetch(
-        'http://backend:8000/chat',
+        'http://localhost:8000/chat',
         {
           method: 'POST',
 
@@ -40,7 +40,7 @@ export default function Home() {
           },
 
           body: JSON.stringify({
-            message: input,
+            prompt: input,
           }),
         }
       )
