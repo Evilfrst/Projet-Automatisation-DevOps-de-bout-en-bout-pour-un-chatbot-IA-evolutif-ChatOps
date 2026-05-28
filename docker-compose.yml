@@ -44,7 +44,7 @@ services:
 
   node-exporter:
     image: prom/node-exporter:latest
-    container_name: corelearn-node-exporter
+    container_name: chatops-node-exporter
     restart: unless-stopped
     ports:
       - "9100:9100"
