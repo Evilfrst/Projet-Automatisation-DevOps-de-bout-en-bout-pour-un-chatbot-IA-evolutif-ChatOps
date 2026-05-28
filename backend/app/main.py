@@ -59,11 +59,12 @@ app.add_middleware(
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not OPENAI_API_KEY:
-   raise ValueError("OPENAI_API_KEY manquante")
+    logger.warning("OPENAI_API_KEY manquante")
 
-client = OpenAI(
-    api_key=OPENAI_API_KEY
-)
+client = None
+
+if OPENAI_API_KEY:
+    client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 # ==================================================
@@ -71,8 +72,8 @@ client = OpenAI(
 # ==================================================
 
 class ChatRequest(BaseModel):
-
     prompt: str
+
 
 # ==================================================
 # ROOT ENDPOINT
@@ -109,40 +110,51 @@ async def chat(data: ChatRequest):
 
     try:
 
-        if not OPENAI_API_KEY:
+        if not client:
+            raise HTTPException(
+                status_code=500,
+                detail="OPENAI_API_KEY not configured"
+            )
 
-            return {
-                "response": f"Mock response: {data.prompt}"
-            }
+        logger.info(f"Prompt reçu : {data.prompt}")
 
         response = client.chat.completions.create(
-            model="gpt-4.1-mini",
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "user",
                     "content": data.prompt
                 }
-            ]
+            ],
+            temperature=0.7,
+            max_tokens=300
         )
 
+        answer = response.choices[0].message.content
+
+        logger.info("Réponse IA générée avec succès")
+
         return {
-            "response": response.choices[0].message.content
+            "response": answer
         }
+
+    except HTTPException as http_error:
+
+        logger.error(str(http_error.detail))
+        raise http_error
 
     except Exception as e:
 
-        logger.error(str(e))
+        logger.exception("Erreur OpenAI")
 
-        return {
-            "response": "AI service unavailable"
-        }
-    
-@app.get("/")
-async def root():
-         return {"status": "running"}
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI service unavailable: {str(e)}"
+        )
 
-@app.get("/health")
-async def health():
-         return {"health": "ok"}
+
+# ==================================================
+# PROMETHEUS METRICS
+# ==================================================
 
 Instrumentator().instrument(app).expose(app)
