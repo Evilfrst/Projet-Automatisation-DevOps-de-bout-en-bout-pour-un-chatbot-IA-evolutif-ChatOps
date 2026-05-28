@@ -1,14 +1,25 @@
 from fastapi.testclient import TestClient
-from backend.app.main import app
 from unittest.mock import patch
+
+from backend.app.main import app
 
 client = TestClient(app)
 
 
-@patch("backend.app.main.client.chat.completions.create")
-def test_chat(mock_openai):
+def test_root():
+    response = client.get("/")
+    assert response.status_code == 200
 
-    mock_openai.return_value.choices = [
+
+def test_health():
+    response = client.get("/health")
+    assert response.status_code == 200
+
+
+@patch("backend.app.main.client.chat.completions.create")
+def test_chat(mock_create):
+
+    mock_create.return_value.choices = [
         type(
             "obj",
             (object,),
@@ -17,7 +28,7 @@ def test_chat(mock_openai):
                     "obj",
                     (object,),
                     {
-                        "content": "Hello test"
+                        "content": "Bonjour depuis le mock"
                     }
                 )()
             }
@@ -30,16 +41,8 @@ def test_chat(mock_openai):
     )
 
     assert response.status_code == 200
-def test_root():
-    response = client.get("/")
-    assert response.status_code == 200
 
+    data = response.json()
 
-def test_health():
-    response = client.get("/health")
-    assert response.status_code == 200
-
-
-def test_chat():
-    response = client.post("/chat", json={"prompt": "hello"})
-    assert response.status_code == 200
+    assert "response" in data
+    assert data["response"] == "Bonjour depuis le mock"
