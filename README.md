@@ -19,6 +19,7 @@ Kubernetes
 Observabilité
 Automatisation
 Intégration IA
+
 🎯 Objectifs du projet
 
 L'objectif principal est de construire une plateforme de production capable de :
@@ -117,6 +118,7 @@ Monitoring
 Prometheus
 Grafana
 Alertmanager
+
 📂 Structure du Projet
 chatops-ai/
 
@@ -144,6 +146,7 @@ chatops-ai/
 │   └── workflows/
 │
 └── docker-compose.yml
+
 ⚙️ Fonctionnalités
 IA Conversationnelle
 Questions / réponses IA
@@ -163,6 +166,7 @@ Dashboard
 Grafana
 Visualisation temps réel
 KPI système
+
 🚀 Déploiement Local
 Cloner le dépôt
 git clone https://github.com/username/chatops-ai.git
@@ -197,6 +201,7 @@ http://IP_AWS:9090
 Alertmanager :
 
 http://IP_AWS:9093
+
 ☁️ Déploiement AWS
 
 Provisionnement automatique :
@@ -214,6 +219,7 @@ Création :
 EC2
 Security Groups
 Réseau
+
 🔄 CI/CD
 
 Pipeline GitHub Actions :
@@ -267,12 +273,14 @@ Niveau : Critical
 
 Description :
 Le backend est indisponible depuis plus d'une minute.
+
 🔒 Sécurité
 Gestion sécurisée des secrets
 Variables d'environnement
 Isolation Docker
 Contrôle des accès AWS
 Security Groups
+
 🧪 Tests
 Backend
 pytest
@@ -280,6 +288,7 @@ Docker
 docker compose ps
 Monitoring
 curl IP_AWS:8000/metrics
+
 📈 Compétences démontrées
 Cloud Engineering
 DevOps
@@ -293,6 +302,7 @@ Containerisation
 Kubernetes
 Automatisation
 Intelligence Artificielle
+
 📷 Démonstration
 Dashboard
 KPI système
@@ -304,6 +314,7 @@ Réponses génératives
 Alertes
 Détection automatique
 Notification e-mail
+
 👨‍💻 Auteur
 
 Projet réalisé dans le cadre d'une démonstration complète des pratiques DevOps, Cloud Engineering et Observabilité appliquées à une plateforme IA moderne.
