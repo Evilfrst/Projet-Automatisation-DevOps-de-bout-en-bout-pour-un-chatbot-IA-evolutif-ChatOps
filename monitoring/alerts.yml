@@ -1,5 +1,5 @@
 groups:
-  - name: backend-alerts
+  - name: chatops-alerts
     rules:
       - alert: BackendDown
         expr: up{job="fastapi"} == 0
@@ -7,7 +7,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Backend is down"
+          summary: "Backend indisponible"
+          description: "Le backend FastAPI ne répond plus."
 
       - alert: HighCPUUsage
         expr: 100 - (avg by(instance)(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
@@ -16,6 +17,7 @@ groups:
           severity: warning
         annotations:
           summary: "High CPU usage detected"
+          description: "Surcharge du CPU."
 
       - alert: HighMemoryUsage
         expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
@@ -24,3 +26,4 @@ groups:
           severity: warning
         annotations:
           summary: "High memory usage detected"
+          description: "Surcharge de la mémoire."
