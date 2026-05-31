@@ -1,3 +1,5 @@
+<img width="1254" height="1254" alt="ChatGPT Image 31 mai 2026, 14_34_50" src="https://github.com/user-attachments/assets/02efea0b-2fa6-449e-9a78-538d157ef2ee" />
+
 # 🚀 ChatOps AI — DevSecOps Automation Platform
 
 ![ChatOps Banner](https://github.com/user-attachments/assets/22c58201-4b21-4e16-a552-0167dd5c7891)
