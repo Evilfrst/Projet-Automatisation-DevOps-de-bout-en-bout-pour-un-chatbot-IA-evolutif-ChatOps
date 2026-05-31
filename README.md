@@ -4,391 +4,312 @@
 
 ![ChatOps Banner](https://github.com/user-attachments/assets/22c58201-4b21-4e16-a552-0167dd5c7891)
 
-## 📖 Présentation
+📖 Présentation
 
-ChatOps AI Enterprise est une plateforme DevSecOps complète permettant de déployer, superviser et faire évoluer un chatbot IA dans un environnement proche de la production.
+ChatOps AI Enterprise est une plateforme cloud-native permettant aux utilisateurs d'interagir avec une Intelligence Artificielle via une interface web moderne tout en mettant en œuvre les bonnes pratiques DevOps, DevSecOps et SRE.
 
-Le projet combine :
+Ce projet a été conçu pour démontrer la maîtrise de :
 
-- Frontend moderne en Next.js
-- API backend FastAPI
-- Intégration OpenAI
-- Conteneurisation Docker
-- Orchestration Docker Compose
-- CI/CD GitHub Actions
-- Déploiement AWS EC2
-- Infrastructure as Code avec Terraform
-- Monitoring avec Prometheus, Grafana, Loki et Promtail
-- Observabilité et métriques applicatives
+Cloud Computing
+Infrastructure as Code
+CI/CD
+Monitoring & Alerting
+Containerisation
+Kubernetes
+Observabilité
+Automatisation
+Intégration IA
+🎯 Objectifs du projet
 
----
+L'objectif principal est de construire une plateforme de production capable de :
 
-## 🎯 Objectifs
+✅ Interroger une IA générative
 
-- Automatiser le cycle de vie applicatif
-- Déployer rapidement une solution IA en production
-- Mettre en œuvre des pratiques DevOps et DevSecOps modernes
-- Superviser les performances et la disponibilité des services
-- Fournir une architecture évolutive et maintenable
+✅ Être déployée automatiquement
 
----
+✅ Être supervisée en temps réel
 
-## 🏗️ Architecture
+✅ Déclencher des alertes automatiques
 
-```text
-Utilisateur
-     │
-     ▼
-┌──────────────┐
-│ Frontend     │
-│ Next.js      │
-└──────┬───────┘
-       │ HTTP
-       ▼
-┌──────────────┐
-│ Backend      │
-│ FastAPI      │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ OpenAI API   │
-└──────────────┘
+✅ Être scalable et maintenable
+
+✅ Respecter les pratiques DevOps modernes
+
+🏗️ Architecture
+                     +----------------+
+                     |   Utilisateur  |
+                     +--------+-------+
+                              |
+                              v
+                   +-------------------+
+                   |   Frontend Next.js |
+                   +---------+----------+
+                             |
+                             v
+                   +-------------------+
+                   | Backend FastAPI   |
+                   +---------+----------+
+                             |
+                             v
+                   +-------------------+
+                   |    OpenAI API     |
+                   +-------------------+
+
+──────────────────────────────────────────
 
 Monitoring
-┌──────────────┐
-│ Prometheus   │
-│ Grafana      │
-│ Loki         │
-│ Promtail     │
-└──────────────┘
+
+Prometheus
+     |
+Grafana
+     |
+Alertmanager
+     |
+Email Alerts
+
+──────────────────────────────────────────
 
 CI/CD
-GitHub → GitHub Actions → AWS EC2
-```
 
----
+GitHub Actions
+      |
+Docker Build
+      |
+AWS Deployment
 
-## 🧱 Stack Technique
+──────────────────────────────────────────
 
-### Frontend
-- Next.js 16
-- React 19
-- TypeScript
-- Tailwind CSS
-- Axios
-- Framer Motion
-- Recharts
+Infrastructure
 
-### Backend
-- Python 3.11+
-- FastAPI
-- Pydantic
-- OpenAI SDK
-- Prometheus Instrumentator
+Terraform
+     |
+AWS EC2
 
-### DevOps
-- Docker
-- Docker Compose
-- GitHub Actions
+──────────────────────────────────────────
 
-### Cloud
-- AWS EC2
-- AWS VPC
-- AWS Security Groups
+Containerisation
 
-### Monitoring
-- Prometheus
-- Grafana
-- Loki
-- Promtail
+Docker
+Docker Compose
+Kubernetes
+🛠️ Stack Technique
+Frontend
+Next.js
+React
+TypeScript
+Tailwind CSS
+Backend
+Python
+FastAPI
+OpenAI SDK
+Cloud
+AWS EC2
+Infrastructure as Code
+Terraform
+Containerisation
+Docker
+Docker Compose
+Orchestration
+Kubernetes
+CI/CD
+GitHub Actions
+Monitoring
+Prometheus
+Grafana
+Alertmanager
+📂 Structure du Projet
+chatops-ai/
 
-### Infrastructure as Code
-- Terraform
-
----
-
-## 📂 Structure du Projet
-
-```text
-.
-├── .github/
-│   └── workflows/
-│       ├── ci.yml
-│       └── deploy.yml
-│
-├── backend/
-│   ├── app/
-│   │   └── main.py
-│   ├── requirements.txt
-│   └── dockerfile
-│
 ├── frontend/
 │   ├── app/
 │   ├── public/
-│   ├── package.json
-│   └── dockerfile
+│   └── Dockerfile
+│
+├── backend/
+│   ├── app/
+│   ├── requirements.txt
+│   └── Dockerfile
 │
 ├── monitoring/
 │   ├── prometheus.yml
 │   ├── alerts.yml
 │   ├── alertmanager.yml
-│   └── grafana-dashboard.json
+│   └── grafana/
 │
 ├── terraform/
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   └── provider.tf
 │
-├── k8s/
-│   ├── backend-deployment.yaml
-│   ├── frontend-deployment.yaml
-│   └── service.yaml
+├── kubernetes/
 │
-├── tests/
-├── docker-compose.yml
-└── README.md
-```
+├── .github/
+│   └── workflows/
+│
+└── docker-compose.yml
+⚙️ Fonctionnalités
+IA Conversationnelle
+Questions / réponses IA
+Interface temps réel
+Gestion des requêtes utilisateur
+Monitoring
+Disponibilité des services
+Consommation CPU
+Consommation mémoire
+Temps de réponse API
+Alerting
+Backend indisponible
+Forte charge CPU
+Forte consommation mémoire
+Latence excessive
+Dashboard
+Grafana
+Visualisation temps réel
+KPI système
+🚀 Déploiement Local
+Cloner le dépôt
+git clone https://github.com/username/chatops-ai.git
 
----
-
-## ⚙️ Fonctionnalités
-
-### Frontend
-- Interface chatbot moderne
-- Dashboard de supervision
-- Responsive Design
-- Communication temps réel avec l’API
-
-### Backend
-- Endpoint de chat IA
-- Endpoint Health Check
-- Gestion des erreurs
-- Journalisation centralisée
-- Instrumentation Prometheus
-
-### DevOps
-- Construction automatique des images Docker
-- Déploiement automatisé sur AWS
-- Gestion des secrets GitHub
-- Infrastructure reproductible
-
-### Monitoring
-- Collecte des métriques
-- Dashboards Grafana
-- Centralisation des logs
-- Alerting Prometheus
-
----
-
-## 🔌 API
-
-### Vérification de santé
-
-```http
-GET /health
-```
-
-Réponse :
-
-```json
-{
-  "status": "healthy"
-}
-```
-
-### Informations du service
-
-```http
-GET /
-```
-
-Réponse :
-
-```json
-{
-  "status": "online",
-  "service": "ChatOps AI Enterprise",
-  "version": "2.0.0"
-}
-```
-
-### Chat IA
-
-```http
-POST /chat
-```
-
-Corps :
-
-```json
-{
-  "prompt": "Explique Docker"
-}
-```
-
-Réponse :
-
-```json
-{
-  "response": "Docker est une plateforme..."
-}
-```
-
----
-
-## 🐳 Déploiement Local
-
-### Cloner le projet
-
-```bash
-git clone <repository-url>
 cd chatops-ai
-```
+Variables d'environnement
 
-### Variables d’environnement
+Créer :
 
-Créer un fichier `.env` :
-
-```env
+backend/.env
 OPENAI_API_KEY=your_api_key
-ENVIRONMENT=development
-PORT=8000
-```
+Lancer les services
+docker compose up -d
+Vérification
 
-### Lancer avec Docker Compose
+Frontend :
 
-```bash
-docker compose up -d --build
-```
+http://IP_AWS:3000
 
-Services :
+Backend :
 
-| Service | URL |
-|----------|-----|
-| Frontend | http://IP_AWS:3000 |
-| Backend | http://IP_AWS:8000 |
-| Prometheus | http://IP_AWS:9090 |
-| Grafana | http://IP_AWS:3001 |
+http://IP_AWS:8000/docs
 
----
+Grafana :
 
-## ☁️ Déploiement AWS
+http://IP_AWS:3001
 
-L’infrastructure Terraform crée notamment :
+Prometheus :
 
-- VPC dédié
-- Sous-réseau public
-- Internet Gateway
-- Table de routage
-- Security Group
-- Instance EC2
+http://IP_AWS:9090
 
-### Terraform
+Alertmanager :
 
-```bash
+http://IP_AWS:9093
+☁️ Déploiement AWS
+
+Provisionnement automatique :
+
 cd terraform
 
 terraform init
+
 terraform plan
+
 terraform apply
-```
 
----
+Création :
 
-## 🔄 Pipeline CI/CD
+EC2
+Security Groups
+Réseau
+🔄 CI/CD
 
-### CI
+Pipeline GitHub Actions :
 
-À chaque push :
+Push
+ ↓
+Tests
+ ↓
+Build Docker
+ ↓
+Push Images
+ ↓
+Déploiement AWS
+ ↓
+Redémarrage Services
 
-1. Checkout du code
-2. Installation des dépendances
-3. Exécution des tests
-4. Build Docker
+Déclenchement automatique à chaque commit.
 
-### CD
-
-Après validation :
-
-1. Copie des fichiers vers EC2
-2. Connexion SSH
-3. Reconstruction des conteneurs
-4. Redémarrage de la stack
-
----
-
-## 🔐 Sécurité
-
-Bonnes pratiques intégrées :
-
-- Secrets GitHub Actions
-- Variables d’environnement
-- Isolation des conteneurs
-- Infrastructure versionnée
-- Automatisation des déploiements
-
-Améliorations possibles :
-
-- Authentification JWT
-- Reverse Proxy Nginx
-- HTTPS avec Let's Encrypt
-- Scan SAST/DAST
-- Gestion des secrets AWS Secrets Manager
-
----
-
-## 📊 Observabilité
-
-### Prometheus
+📊 Observabilité
+Prometheus
 
 Collecte :
-- Disponibilité API
-- Temps de réponse
-- Nombre de requêtes
-- Erreurs applicatives
 
-### Grafana
+Disponibilité
+Temps de réponse
+Métriques applicatives
+Grafana
 
 Visualisation :
-- Santé des services
-- Consommation ressources
-- Trafic API
-- Logs centralisés
 
----
+CPU
+RAM
+Requêtes
+État du backend
+Alertmanager
 
-## 🧪 Tests
+Notifications automatiques :
 
-Lancement :
+Email
+Alertes critiques
+Résolution automatique
+📧 Alertes
 
-```bash
-pytest -v
-```
+Exemple :
 
----
+[ChatOps AI] BackendDown
 
-## 🚀 Évolutions Futures
+Service : FastAPI
 
-- Authentification utilisateur
-- Historique des conversations
-- Base de données PostgreSQL
-- Kubernetes complet
-- Helm Charts
-- GitOps avec ArgoCD
-- Multi-environnements Dev / Staging / Prod
-- Intégration LLM locale
-- RAG et vector database
+Niveau : Critical
 
----
+Description :
+Le backend est indisponible depuis plus d'une minute.
+🔒 Sécurité
+Gestion sécurisée des secrets
+Variables d'environnement
+Isolation Docker
+Contrôle des accès AWS
+Security Groups
+🧪 Tests
+Backend
+pytest
+Docker
+docker compose ps
+Monitoring
+curl IP_AWS:8000/metrics
+📈 Compétences démontrées
+Cloud Engineering
+DevOps
+DevSecOps
+SRE
+Infrastructure as Code
+CI/CD
+Monitoring
+Alerting
+Containerisation
+Kubernetes
+Automatisation
+Intelligence Artificielle
+📷 Démonstration
+Dashboard
+KPI système
+Monitoring temps réel
+Observabilité
+Chatbot
+Interaction IA
+Réponses génératives
+Alertes
+Détection automatique
+Notification e-mail
+👨‍💻 Auteur
 
-## 👨‍💻 Auteur
+Projet réalisé dans le cadre d'une démonstration complète des pratiques DevOps, Cloud Engineering et Observabilité appliquées à une plateforme IA moderne.
 
-Projet réalisé dans le cadre d’une démonstration complète DevOps / DevSecOps appliquée à un chatbot IA moderne.
+📜 Licence
 
-## 📄 Licence
-
-Projet distribué à des fins pédagogiques et démonstratives.
+Projet pédagogique et démonstratif.
 
 
