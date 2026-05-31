@@ -2,419 +2,391 @@
 
 ![ChatOps Banner](https://github.com/user-attachments/assets/22c58201-4b21-4e16-a552-0167dd5c7891)
 
-## 📌 Overview
+## 📖 Présentation
 
-ChatOps AI is a complete end-to-end DevSecOps automation platform designed for deploying and monitoring an AI-powered chatbot infrastructure.
+ChatOps AI Enterprise est une plateforme DevSecOps complète permettant de déployer, superviser et faire évoluer un chatbot IA dans un environnement proche de la production.
 
-This project combines:
+Le projet combine :
 
-* ⚡ FastAPI backend API
-* 🎨 Next.js frontend interface
-* 🐳 Docker & Docker Compose containerization
-* 🔁 CI/CD automation with GitHub Actions
-* ☁️ AWS EC2 deployment
-* 📊 Monitoring with Prometheus & Grafana
-* 🔐 Basic DevSecOps practices
-* 🤖 AI-powered chatbot architecture
-
-The objective of this project is to simulate a production-ready DevOps environment while integrating modern AI technologies and automation workflows.
+- Frontend moderne en Next.js
+- API backend FastAPI
+- Intégration OpenAI
+- Conteneurisation Docker
+- Orchestration Docker Compose
+- CI/CD GitHub Actions
+- Déploiement AWS EC2
+- Infrastructure as Code avec Terraform
+- Monitoring avec Prometheus, Grafana, Loki et Promtail
+- Observabilité et métriques applicatives
 
 ---
 
-# 🏗️ Architecture
+## 🎯 Objectifs
+
+- Automatiser le cycle de vie applicatif
+- Déployer rapidement une solution IA en production
+- Mettre en œuvre des pratiques DevOps et DevSecOps modernes
+- Superviser les performances et la disponibilité des services
+- Fournir une architecture évolutive et maintenable
+
+---
+
+## 🏗️ Architecture
 
 ```text
-                    ┌────────────────────┐
-                    │    GitHub Repo     │
-                    └─────────┬──────────┘
-                              │
-                     GitHub Actions CI/CD
-                              │
-                              ▼
-                    ┌────────────────────┐
-                    │     AWS EC2        │
-                    └─────────┬──────────┘
-                              │
-          ┌───────────────────┼───────────────────┐
-          │                   │                   │
-          ▼                   ▼                   ▼
- ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
- │  Next.js App   │ │ FastAPI API    │ │ Monitoring     │
- │ Frontend       │ │ Backend        │ │ Grafana/Prom   │
- └────────────────┘ └────────────────┘ └────────────────┘
+Utilisateur
+     │
+     ▼
+┌──────────────┐
+│ Frontend     │
+│ Next.js      │
+└──────┬───────┘
+       │ HTTP
+       ▼
+┌──────────────┐
+│ Backend      │
+│ FastAPI      │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ OpenAI API   │
+└──────────────┘
+
+Monitoring
+┌──────────────┐
+│ Prometheus   │
+│ Grafana      │
+│ Loki         │
+│ Promtail     │
+└──────────────┘
+
+CI/CD
+GitHub → GitHub Actions → AWS EC2
 ```
 
 ---
 
-# ✨ Features
+## 🧱 Stack Technique
 
-## 🔹 Frontend
+### Frontend
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS
+- Axios
+- Framer Motion
+- Recharts
 
-* Modern responsive UI
-* Next.js 16 + React
-* Tailwind CSS styling
-* AI chat interface
-* Real-time API communication
-* Optimized production build
+### Backend
+- Python 3.11+
+- FastAPI
+- Pydantic
+- OpenAI SDK
+- Prometheus Instrumentator
 
-## 🔹 Backend
+### DevOps
+- Docker
+- Docker Compose
+- GitHub Actions
 
-* FastAPI REST API
-* OpenAI-ready architecture
-* Healthcheck endpoints
-* Metrics endpoints
-* Async request handling
-* Containerized deployment
+### Cloud
+- AWS EC2
+- AWS VPC
+- AWS Security Groups
 
-## 🔹 DevOps & Infrastructure
+### Monitoring
+- Prometheus
+- Grafana
+- Loki
+- Promtail
 
-* Docker containerization
-* Docker Compose orchestration
-* GitHub Actions CI/CD pipeline
-* AWS EC2 deployment
-* Automated deployment workflow
-* SSH-based production deployment
-
-## 🔹 Monitoring
-
-* Prometheus metrics collection
-* Grafana dashboards
-* Container monitoring
-* Application observability
-
----
-
-# 🛠️ Tech Stack
-
-| Category        | Technologies                             |
-| --------------- | ---------------------------------------- |
-| Frontend        | Next.js, React, Tailwind CSS, TypeScript |
-| Backend         | FastAPI, Python                          |
-| DevOps          | Docker, Docker Compose, GitHub Actions   |
-| Cloud           | AWS EC2                                  |
-| Monitoring      | Prometheus, Grafana                      |
-| CI/CD           | GitHub Actions                           |
-| Version Control | Git & GitHub                             |
+### Infrastructure as Code
+- Terraform
 
 ---
 
-# 📂 Project Structure
+## 📂 Structure du Projet
 
-```bash
+```text
 .
-├── backend/
-│   ├── app/
-│   ├── requirements.txt
-│   └── Dockerfile
-│
-├── frontend/
-│   ├── app/
-│   ├── public/
-│   ├── package.json
-│   ├── postcss.config.js
-│   └── Dockerfile
-│
-├── monitoring/
-│   └── prometheus.yml
-│
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml
 │       └── deploy.yml
 │
+├── backend/
+│   ├── app/
+│   │   └── main.py
+│   ├── requirements.txt
+│   └── dockerfile
+│
+├── frontend/
+│   ├── app/
+│   ├── public/
+│   ├── package.json
+│   └── dockerfile
+│
+├── monitoring/
+│   ├── prometheus.yml
+│   ├── alerts.yml
+│   ├── alertmanager.yml
+│   └── grafana-dashboard.json
+│
+├── terraform/
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── provider.tf
+│
+├── k8s/
+│   ├── backend-deployment.yaml
+│   ├── frontend-deployment.yaml
+│   └── service.yaml
+│
+├── tests/
 ├── docker-compose.yml
-├── README.md
-└── .env
+└── README.md
 ```
 
 ---
 
-# ⚙️ Local Installation
+## ⚙️ Fonctionnalités
 
-## 1️⃣ Clone the repository
+### Frontend
+- Interface chatbot moderne
+- Dashboard de supervision
+- Responsive Design
+- Communication temps réel avec l’API
 
-```bash
-git clone https://github.com/Evilfrst/Projet-Automatisation-DevOps-de-bout-en-bout-pour-un-chatbot-IA-evolutif-ChatOps.git
+### Backend
+- Endpoint de chat IA
+- Endpoint Health Check
+- Gestion des erreurs
+- Journalisation centralisée
+- Instrumentation Prometheus
 
-cd Projet-Automatisation-DevOps-de-bout-en-bout-pour-un-chatbot-IA-evolutif-ChatOps
+### DevOps
+- Construction automatique des images Docker
+- Déploiement automatisé sur AWS
+- Gestion des secrets GitHub
+- Infrastructure reproductible
+
+### Monitoring
+- Collecte des métriques
+- Dashboards Grafana
+- Centralisation des logs
+- Alerting Prometheus
+
+---
+
+## 🔌 API
+
+### Vérification de santé
+
+```http
+GET /health
+```
+
+Réponse :
+
+```json
+{
+  "status": "healthy"
+}
+```
+
+### Informations du service
+
+```http
+GET /
+```
+
+Réponse :
+
+```json
+{
+  "status": "online",
+  "service": "ChatOps AI Enterprise",
+  "version": "2.0.0"
+}
+```
+
+### Chat IA
+
+```http
+POST /chat
+```
+
+Corps :
+
+```json
+{
+  "prompt": "Explique Docker"
+}
+```
+
+Réponse :
+
+```json
+{
+  "response": "Docker est une plateforme..."
+}
 ```
 
 ---
 
-# 🐳 Run with Docker Compose
+## 🐳 Déploiement Local
 
-## Start the full stack
+### Cloner le projet
 
 ```bash
-docker compose up --build
+git clone <repository-url>
+cd chatops-ai
 ```
 
-## Run in background
+### Variables d’environnement
+
+Créer un fichier `.env` :
+
+```env
+OPENAI_API_KEY=your_api_key
+ENVIRONMENT=development
+PORT=8000
+```
+
+### Lancer avec Docker Compose
 
 ```bash
 docker compose up -d --build
 ```
 
-## Stop containers
+Services :
+
+| Service | URL |
+|----------|-----|
+| Frontend | http://IP_AWS:3000 |
+| Backend | http://IP_AWS:8000 |
+| Prometheus | http://IP_AWS:9090 |
+| Grafana | http://IP_AWS:3001 |
+
+---
+
+## ☁️ Déploiement AWS
+
+L’infrastructure Terraform crée notamment :
+
+- VPC dédié
+- Sous-réseau public
+- Internet Gateway
+- Table de routage
+- Security Group
+- Instance EC2
+
+### Terraform
 
 ```bash
-docker compose down
+cd terraform
+
+terraform init
+terraform plan
+terraform apply
 ```
 
 ---
 
-# 🌐 Services URLs
+## 🔄 Pipeline CI/CD
 
-| Service      | URL                                                      |
-| ------------ | -------------------------------------------------------- |
-| Frontend     | [http://localhost:3000](http://localhost:3000)           |
-| Backend API  | [http://localhost:8000](http://localhost:8000)           |
-| Swagger Docs | [http://localhost:8000/docs](http://localhost:8000/docs) |
-| Prometheus   | [http://localhost:9090](http://localhost:9090)           |
-| Grafana      | [http://localhost:3001](http://localhost:3001)           |
+### CI
+
+À chaque push :
+
+1. Checkout du code
+2. Installation des dépendances
+3. Exécution des tests
+4. Build Docker
+
+### CD
+
+Après validation :
+
+1. Copie des fichiers vers EC2
+2. Connexion SSH
+3. Reconstruction des conteneurs
+4. Redémarrage de la stack
 
 ---
 
-# 🔐 Grafana Credentials
+## 🔐 Sécurité
 
-```text
-Username: admin
-Password: admin
-```
+Bonnes pratiques intégrées :
+
+- Secrets GitHub Actions
+- Variables d’environnement
+- Isolation des conteneurs
+- Infrastructure versionnée
+- Automatisation des déploiements
+
+Améliorations possibles :
+
+- Authentification JWT
+- Reverse Proxy Nginx
+- HTTPS avec Let's Encrypt
+- Scan SAST/DAST
+- Gestion des secrets AWS Secrets Manager
 
 ---
 
-# ▶️ Run Services Individually
+## 📊 Observabilité
 
-## Backend
+### Prometheus
+
+Collecte :
+- Disponibilité API
+- Temps de réponse
+- Nombre de requêtes
+- Erreurs applicatives
+
+### Grafana
+
+Visualisation :
+- Santé des services
+- Consommation ressources
+- Trafic API
+- Logs centralisés
+
+---
+
+## 🧪 Tests
+
+Lancement :
 
 ```bash
-cd backend
-
-pip install -r requirements.txt
-
-uvicorn app.main:app --reload
+pytest -v
 ```
 
 ---
 
-## Frontend
+## 🚀 Évolutions Futures
 
-```bash
-cd frontend
-
-npm install
-npm run dev
-```
-
----
-
-# ☁️ AWS Deployment
-
-## EC2 Requirements
-
-* Ubuntu Server
-* Docker installed
-* Docker Compose installed
-* Open port 22 (SSH)
-* Open port 3000 (Frontend)
-* Open port 8000 (Backend)
-* Open port 9090 (Prometheus)
-* Open port 3001 (Grafana)
+- Authentification utilisateur
+- Historique des conversations
+- Base de données PostgreSQL
+- Kubernetes complet
+- Helm Charts
+- GitOps avec ArgoCD
+- Multi-environnements Dev / Staging / Prod
+- Intégration LLM locale
+- RAG et vector database
 
 ---
 
-# 🔑 Configure GitHub Secrets
+## 👨‍💻 Auteur
 
-In your GitHub repository:
+Projet réalisé dans le cadre d’une démonstration complète DevOps / DevSecOps appliquée à un chatbot IA moderne.
 
-```text
-Settings → Secrets and variables → Actions
-```
+## 📄 Licence
 
-Add the following secrets:
+Projet distribué à des fins pédagogiques et démonstratives.
 
-| Secret Name | Description                    |
-| ----------- | ------------------------------ |
-| HOST        | EC2 Elastic IP                 |
-| SSH_KEY     | Private SSH key (.pem content) |
-
----
-
-# 🔄 CI/CD Pipeline
-
-The GitHub Actions pipeline automatically:
-
-* Checks out the repository
-* Copies project files to EC2
-* Connects through SSH
-* Rebuilds Docker containers
-* Deploys updated services
-
-Deployment file:
-
-```text
-.github/workflows/deploy.yml
-```
-
----
-
-# 📊 Monitoring Stack
-
-## Prometheus
-
-Collects application and container metrics.
-
-Configuration:
-
-```text
-monitoring/prometheus.yml
-```
-
-## Grafana
-
-Used for:
-
-* Dashboard visualization
-* Monitoring infrastructure
-* Metrics analysis
-* Observability
-
----
-
-# 🔥 Common Docker Commands
-
-## View containers
-
-```bash
-docker ps
-```
-
-## View logs
-
-```bash
-docker compose logs -f
-```
-
-## Rebuild project
-
-```bash
-docker compose build --no-cache
-```
-
-## Remove unused Docker resources
-
-```bash
-docker system prune -a -f
-```
-
----
-
-# 🧪 Troubleshooting
-
-## Frontend page blank
-
-Rebuild frontend:
-
-```bash
-docker compose build --no-cache frontend
-```
-
----
-
-## SSH timeout during CI/CD
-
-Verify:
-
-* EC2 is running
-* Security Group allows port 22
-* Elastic IP is correctly associated
-* SSH key is valid in GitHub Secrets
-
----
-
-## Docker container not starting
-
-Check logs:
-
-```bash
-docker compose logs -f frontend
-```
-
-or:
-
-```bash
-docker compose logs -f backend
-```
-
----
-
-# 🔒 Security Considerations
-
-* Use Elastic IP instead of dynamic public IP
-* Protect SSH private keys
-* Restrict inbound rules in production
-* Use environment variables for secrets
-* Avoid exposing internal services publicly
-
----
-
-# 📈 Future Improvements
-
-* Kubernetes deployment
-* Terraform Infrastructure as Code
-* Jenkins pipeline integration
-* HTTPS with Nginx & SSL
-* AI model integration
-* Advanced observability stack
-* Multi-environment deployment
-* Automated rollback strategy
-
----
-
-# 👨‍💻 Author
-
-## Tchamen Lan
-
-DevOps • Cloud • AI • Automation • Infrastructure
-
----
-
-# 📜 License
-
-This project is intended for educational, DevOps learning, and portfolio demonstration purposes.
-
----
-
-# ⭐ Support
-
-If you like this project:
-
-* ⭐ Star the repository
-* 🍴 Fork the project
-* 🚀 Improve and contribute
-
----
-
-# 🚀 Final Result
-
-A production-style AI DevSecOps platform integrating:
-
-✅ Frontend
-✅ Backend
-✅ Docker
-✅ CI/CD
-✅ AWS Deployment
-✅ Monitoring
-✅ Automation
-✅ DevOps Best Practices
-
-
-Grafana:
-http://localhost:3001
-
-## Grafana Credentials
-
-admin
-admin
 
