@@ -152,7 +152,28 @@ async def chat(data: ChatRequest):
             detail=f"AI service unavailable: {str(e)}"
         )
 
+   db = SessionLocal()
 
+  conversation = Conversation(
+    user_message=request.message,
+    ai_response=response_text
+  )
+
+  db.add(conversation)
+
+  db.commit()
+
+# ==================================================
+# HISTORIQUE
+# ==================================================
+
+@app.get("/history")
+def get_history():
+
+    db = SessionLocal()
+
+    return db.query(Conversation).all()
+    
 # ==================================================
 # PROMETHEUS METRICS
 # ==================================================
