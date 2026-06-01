@@ -3,3 +3,6 @@ uvicorn
 openai
 python-dotenv
 prometheus-fastapi-instrumentator
+sqlalchemy
+psycopg2-binary
+alembic
