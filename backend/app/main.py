@@ -6,8 +6,8 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter
 from openai import OpenAI
 
-from .database import SessionLocal
-from .models import Conversation
+from .database import SessionLocal, engine
+from .models import Conversation, Base
 
 import os
 import logging
@@ -41,6 +41,12 @@ app = FastAPI(
     description="AI DevOps Assistant powered by OpenAI",
     version="2.0.0"
 )
+
+# ==================================================
+# DATABASE INIT
+# ==================================================
+
+Base.metadata.create_all(bind=engine)
 
 
 # ==================================================
@@ -151,21 +157,33 @@ async def chat(data: ChatRequest):
 
         answer = response.choices[0].message.content
 
-        # ==========================
-        # SAVE TO DATABASE
-        # ==========================
+        # ==========================================
+        # SAVE CONVERSATION
+        # ==========================================
 
-        conversation = Conversation(
-            user_message=data.prompt,
-            ai_response=answer
-        )
+        try:
 
-        db.add(conversation)
-        db.commit()
+            conversation = Conversation(
+                user_message=data.prompt,
+                ai_response=answer
+            )
 
-        conversations_saved_total.inc()
+            db.add(conversation)
+            db.commit()
 
-        logger.info("Conversation sauvegardée")
+            conversations_saved_total.inc()
+
+            logger.info("Conversation sauvegardée")
+
+        except Exception as db_error:
+
+            db.rollback()
+
+            database_errors_total.inc()
+
+            logger.warning(
+                f"Impossible de sauvegarder la conversation : {db_error}"
+            )
 
         return {
             "response": answer
@@ -178,9 +196,7 @@ async def chat(data: ChatRequest):
 
     except Exception as e:
 
-        database_errors_total.inc()
-
-        logger.exception("Erreur OpenAI ou PostgreSQL")
+        logger.exception("Erreur OpenAI")
 
         raise HTTPException(
             status_code=500,
@@ -188,6 +204,7 @@ async def chat(data: ChatRequest):
         )
 
     finally:
+
         db.close()
 
 
@@ -201,6 +218,7 @@ def get_history():
     db = SessionLocal()
 
     try:
+
         conversations = db.query(Conversation).all()
 
         return [
@@ -212,7 +230,16 @@ def get_history():
             for c in conversations
         ]
 
+    except Exception as e:
+
+        logger.warning(
+            f"Historique indisponible : {e}"
+        )
+
+        return []
+
     finally:
+
         db.close()
 
 
