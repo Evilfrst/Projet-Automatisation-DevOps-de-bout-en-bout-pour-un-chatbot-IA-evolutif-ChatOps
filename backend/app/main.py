@@ -42,6 +42,7 @@ app = FastAPI(
     version="2.0.0"
 )
 
+
 # ==================================================
 # DATABASE INIT
 # ==================================================
@@ -157,10 +158,6 @@ async def chat(data: ChatRequest):
 
         answer = response.choices[0].message.content
 
-        # ==========================================
-        # SAVE CONVERSATION
-        # ==========================================
-
         try:
 
             conversation = Conversation(
@@ -173,7 +170,9 @@ async def chat(data: ChatRequest):
 
             conversations_saved_total.inc()
 
-            logger.info("Conversation sauvegardée")
+            logger.info(
+                f"Conversation sauvegardée ID={conversation.id}"
+            )
 
         except Exception as db_error:
 
@@ -219,11 +218,20 @@ def get_history():
 
     try:
 
-        conversations = db.query(Conversation).all()
+        conversations = (
+            db.query(Conversation)
+            .order_by(Conversation.id.desc())
+            .all()
+        )
 
         return [
             {
                 "id": c.id,
+                "title": (
+                    c.user_message[:50] + "..."
+                    if len(c.user_message) > 50
+                    else c.user_message
+                ),
                 "user_message": c.user_message,
                 "ai_response": c.ai_response
             }
@@ -237,6 +245,43 @@ def get_history():
         )
 
         return []
+
+    finally:
+
+        db.close()
+
+
+# ==================================================
+# GET ONE CONVERSATION
+# ==================================================
+
+@app.get("/history/{conversation_id}")
+def get_conversation(conversation_id: int):
+
+    db = SessionLocal()
+
+    try:
+
+        conversation = (
+            db.query(Conversation)
+            .filter(
+                Conversation.id == conversation_id
+            )
+            .first()
+        )
+
+        if not conversation:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Conversation not found"
+            )
+
+        return {
+            "id": conversation.id,
+            "user_message": conversation.user_message,
+            "ai_response": conversation.ai_response
+        }
 
     finally:
 
