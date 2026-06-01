@@ -36,6 +36,10 @@ export default function Home() {
           }),
         }
       )
+      const history = await fetch(
+  "http://IP_BACKEND:8000/history"
+) 
+      setMessages(history)
 
       const data = await response.json()
 
