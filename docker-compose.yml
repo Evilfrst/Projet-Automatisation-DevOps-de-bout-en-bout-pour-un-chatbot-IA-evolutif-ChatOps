@@ -11,6 +11,7 @@ services:
 
     env_file:
       - .env
+      DATABASE_URL: postgresql://chatops:chatops123@postgres:5432/chatops
 
   frontend:
     build: ./frontend
