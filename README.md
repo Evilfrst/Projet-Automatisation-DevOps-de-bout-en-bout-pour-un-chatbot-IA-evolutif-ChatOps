@@ -20,7 +20,9 @@ Monitoring avec Prometheus et Grafana
 Collecte des logs avec Loki et Promtail
 Infrastructure as Code avec Terraform
 Orchestration Kubernetes
+
 🏗 Architecture
+
 Utilisateur
       │
       ▼
@@ -42,7 +44,9 @@ Grafana
       │
       ▼
 Loki + Promtail
+
 📂 Structure du projet
+
 .
 ├── backend/
 │   ├── app/
@@ -81,7 +85,9 @@ Loki + Promtail
 ├── docker-compose.yml
 ├── docker-compose.monitoring.yml
 └── README.md
+
 🛠 Technologies utilisées
+
 Backend
 Python 3.11
 FastAPI
@@ -105,6 +111,7 @@ Grafana
 Loki
 Promtail
 Node Exporter
+
 ⚙️ Variables d'environnement
 
 Créer un fichier .env :
@@ -112,7 +119,9 @@ Créer un fichier .env :
 OPENAI_API_KEY=your_openai_api_key
 
 DATABASE_URL=postgresql://chatops:chatops123@postgres:5432/chatops
+
 🚀 Lancement local
+
 1. Cloner le dépôt
 git clone <repository-url>
 cd ChatOps-AI-Enterprise
@@ -120,16 +129,20 @@ cd ChatOps-AI-Enterprise
 docker compose up -d --build
 3. Vérifier les conteneurs
 docker ps
+
 🌐 Accès aux services
+
 Service	URL
-Frontend	http://localhost:3000
-Backend API	http://localhost:8000
-Swagger	http://localhost:8000/docs
-Prometheus	http://localhost:9090
-Grafana	http://localhost:3001
-Alertmanager	http://localhost:9093
-Node Exporter	http://localhost:9100/metrics
+Frontend	http://IP_AWS:3000
+Backend API	http://IP_AWS:8000
+Swagger	http://IP_AWS:8000/docs
+Prometheus	http://IP_AWS:9090
+Grafana	http://IP_AWS:3001
+Alertmanager	http://IP_AWS:9093
+Node Exporter	http://IP_AWS:9100/metrics
+
 📊 Monitoring
+
 Prometheus
 
 Vérification :
@@ -168,7 +181,9 @@ Lister les tables :
 Afficher les conversations :
 
 SELECT * FROM conversations;
+
 🤖 API Chatbot
+
 Envoyer une question
 POST /chat
 
@@ -195,6 +210,7 @@ Réponse :
     "ai_response": "..."
   }
 ]
+
 🧪 Tests
 
 Exécuter :
@@ -206,6 +222,7 @@ Tests disponibles :
 Endpoint /
 Endpoint /health
 Endpoint /chat
+
 🔄 Pipeline CI/CD
 
 GitHub Actions exécute automatiquement :
@@ -216,6 +233,7 @@ Tests Pytest
 Build Frontend
 Build Docker
 Déploiement
+
 ☸️ Déploiement Kubernetes
 
 Appliquer :
@@ -226,6 +244,7 @@ Vérifier :
 
 kubectl get pods
 kubectl get svc
+
 🏗 Infrastructure Terraform
 
 Initialisation :
@@ -239,12 +258,15 @@ terraform plan
 Déploiement :
 
 terraform apply
+
 🔒 Sécurité
+
 Variables sensibles dans .env
 Secrets GitHub Actions
 Isolation Docker
 Monitoring des métriques
 Journalisation centralisée
+
 📈 Fonctionnalités
 
 ✅ Chatbot IA OpenAI
