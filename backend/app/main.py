@@ -3,8 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from prometheus_fastapi_instrumentator import Instrumentator
-from openai import OpenAI
 from prometheus_client import Counter
+from openai import OpenAI
+
+from .database import SessionLocal
+from .models import Conversation
 
 import os
 import logging
@@ -37,6 +40,21 @@ app = FastAPI(
     title="ChatOps AI Enterprise",
     description="AI DevOps Assistant powered by OpenAI",
     version="2.0.0"
+)
+
+
+# ==================================================
+# PROMETHEUS METRICS
+# ==================================================
+
+conversations_saved_total = Counter(
+    "conversations_saved_total",
+    "Total conversations saved"
+)
+
+database_errors_total = Counter(
+    "database_errors_total",
+    "Total database errors"
 )
 
 
@@ -82,7 +100,6 @@ class ChatRequest(BaseModel):
 
 @app.get("/")
 async def root():
-
     return {
         "status": "online",
         "service": "ChatOps AI Enterprise",
@@ -96,7 +113,6 @@ async def root():
 
 @app.get("/health")
 async def health():
-
     return {
         "status": "healthy"
     }
@@ -108,6 +124,8 @@ async def health():
 
 @app.post("/chat")
 async def chat(data: ChatRequest):
+
+    db = SessionLocal()
 
     try:
 
@@ -133,7 +151,21 @@ async def chat(data: ChatRequest):
 
         answer = response.choices[0].message.content
 
-        logger.info("Réponse IA générée avec succès")
+        # ==========================
+        # SAVE TO DATABASE
+        # ==========================
+
+        conversation = Conversation(
+            user_message=data.prompt,
+            ai_response=answer
+        )
+
+        db.add(conversation)
+        db.commit()
+
+        conversations_saved_total.inc()
+
+        logger.info("Conversation sauvegardée")
 
         return {
             "response": answer
@@ -146,26 +178,21 @@ async def chat(data: ChatRequest):
 
     except Exception as e:
 
-        logger.exception("Erreur OpenAI")
+        database_errors_total.inc()
+
+        logger.exception("Erreur OpenAI ou PostgreSQL")
 
         raise HTTPException(
             status_code=500,
             detail=f"AI service unavailable: {str(e)}"
         )
 
-   db = SessionLocal()
+    finally:
+        db.close()
 
-  conversation = Conversation(
-    user_message=request.message,
-    ai_response=response_text
-  )
-
-  db.add(conversation)
-
-  db.commit()
 
 # ==================================================
-# HISTORIQUE
+# HISTORY ENDPOINT
 # ==================================================
 
 @app.get("/history")
@@ -173,36 +200,24 @@ def get_history():
 
     db = SessionLocal()
 
-    return db.query(Conversation).all()
-    
+    try:
+        conversations = db.query(Conversation).all()
+
+        return [
+            {
+                "id": c.id,
+                "user_message": c.user_message,
+                "ai_response": c.ai_response
+            }
+            for c in conversations
+        ]
+
+    finally:
+        db.close()
+
+
 # ==================================================
-# PROMETHEUS METRICS
+# PROMETHEUS
 # ==================================================
-conversations_saved_total = Counter(
-    "conversations_saved_total",
-    "Total conversations saved"
-)
-
-database_errors_total = Counter(
-    "database_errors_total",
-    "Total database errors"
-)
-try:
-
-    conversation = Conversation(
-        user_message=request.message,
-        ai_response=response_text
-    )
-
-    db.add(conversation)
-    db.commit()
-
-    conversations_saved_total.inc()
-
-except Exception:
-
-    database_errors_total.inc()
-
-    raise
 
 Instrumentator().instrument(app).expose(app)
