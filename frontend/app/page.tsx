@@ -261,14 +261,14 @@ export default function Home() {
                       message.role === 'user'
                        ? 'flex justify-end'
                         : 'flex justify-start'
-                    }`}
+                    }
                   >
                     <div
                       className={
                         message.role === 'user'
                           ? 'max-w-[80%] rounded-3xl px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600'
                           : 'max-w-[80%] rounded-3xl px-5 py-4 bg-slate-800/80 border border-slate-700'
-                      }`}
+                      }
                     >
                       {message.content}
                     </div>
