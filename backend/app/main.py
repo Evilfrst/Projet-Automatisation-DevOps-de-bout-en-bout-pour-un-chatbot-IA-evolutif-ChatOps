@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from prometheus_fastapi_instrumentator import Instrumentator
 from openai import OpenAI
+from prometheus_client import Counter
 
 import os
 import logging
@@ -177,5 +178,31 @@ def get_history():
 # ==================================================
 # PROMETHEUS METRICS
 # ==================================================
+conversations_saved_total = Counter(
+    "conversations_saved_total",
+    "Total conversations saved"
+)
+
+database_errors_total = Counter(
+    "database_errors_total",
+    "Total database errors"
+)
+try:
+
+    conversation = Conversation(
+        user_message=request.message,
+        ai_response=response_text
+    )
+
+    db.add(conversation)
+    db.commit()
+
+    conversations_saved_total.inc()
+
+except Exception:
+
+    database_errors_total.inc()
+
+    raise
 
 Instrumentator().instrument(app).expose(app)
