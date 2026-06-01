@@ -257,17 +257,17 @@ export default function Home() {
                 {messages.map((message, index) => (
                   <div
                     key={index}
-                    className={`flex ${
+                    className={
                       message.role === 'user'
-                        ? 'justify-end'
-                        : 'justify-start'
+                       ? 'flex justify-end'
+                        : 'flex justify-start'
                     }`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-3xl px-5 py-4 ${
+                      className={
                         message.role === 'user'
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600'
-                          : 'bg-slate-800/80 border border-slate-700'
+                          ? 'max-w-[80%] rounded-3xl px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600'
+                          : 'max-w-[80%] rounded-3xl px-5 py-4 bg-slate-800/80 border border-slate-700'
                       }`}
                     >
                       {message.content}
