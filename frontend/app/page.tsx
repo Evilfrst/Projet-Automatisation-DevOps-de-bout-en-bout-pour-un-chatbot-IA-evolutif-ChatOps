@@ -1,11 +1,19 @@
+```tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
 type Message = {
   role: 'user' | 'assistant'
   content: string
+}
+
+type ConversationHistory = {
+  id: number
+  title?: string
+  user_message: string
+  ai_response: string
 }
 
 export default function Home() {
@@ -17,6 +25,28 @@ export default function Home() {
       content: 'Bienvenue sur ChatOps AI Enterprise 🚀',
     },
   ])
+
+  const [history, setHistory] = useState<ConversationHistory[]>([])
+
+  const loadHistory = async () => {
+    try {
+      const response = await fetch(
+        'http://35.181.183.50:8000/history'
+      )
+
+      if (!response.ok) return
+
+      const data = await response.json()
+
+      setHistory(data)
+    } catch (error) {
+      console.error('Erreur chargement historique :', error)
+    }
+  }
+
+  useEffect(() => {
+    loadHistory()
+  }, [])
 
   const sendMessage = async () => {
     if (!input.trim()) return
@@ -51,6 +81,8 @@ export default function Home() {
 
       const data = await response.json()
 
+      await loadHistory()
+
       setMessages((prev) => [
         ...prev,
         {
@@ -74,14 +106,14 @@ export default function Home() {
   return (
     <main
       className="
-      min-h-screen
-      bg-gradient-to-br
-      from-slate-950
-      via-slate-900
-      to-black
-      text-white
-      p-8
-    "
+        min-h-screen
+        bg-gradient-to-br
+        from-slate-950
+        via-slate-900
+        to-black
+        text-white
+        p-8
+      "
     >
       <div className="max-w-7xl mx-auto">
 
@@ -139,8 +171,6 @@ export default function Home() {
                 p-6
                 shadow-xl
                 shadow-blue-500/5
-                hover:border-blue-500/30
-                transition
               "
             >
               <p className="text-slate-400">{title}</p>
@@ -152,91 +182,149 @@ export default function Home() {
           ))}
         </div>
 
-        <div
-          className="
-            bg-slate-900/70
-            backdrop-blur-xl
-            border
-            border-slate-800
-            rounded-3xl
-            p-6
-            h-[650px]
-            flex
-            flex-col
-            shadow-2xl
-            shadow-blue-500/10
-          "
-        >
-          <div className="flex-1 overflow-auto space-y-5 mb-5 pr-2">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${
-                  message.role === 'user'
-                    ? 'justify-end'
-                    : 'justify-start'
-                }`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-3xl px-5 py-4 ${
-                    message.role === 'user'
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600'
-                      : 'bg-slate-800/80 border border-slate-700'
-                  }`}
+        <div className="flex gap-6">
+
+          <div
+            className="
+              w-80
+              bg-slate-900/70
+              backdrop-blur-xl
+              border
+              border-slate-800
+              rounded-3xl
+              p-5
+              h-[650px]
+              overflow-auto
+              shrink-0
+            "
+          >
+            <h2 className="text-xl font-bold mb-4">
+              Historique
+            </h2>
+
+            <div className="space-y-2">
+              {history.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() =>
+                    setMessages([
+                      {
+                        role: 'user',
+                        content: item.user_message,
+                      },
+                      {
+                        role: 'assistant',
+                        content: item.ai_response,
+                      },
+                    ])
+                  }
+                  className="
+                    w-full
+                    text-left
+                    p-3
+                    rounded-xl
+                    bg-slate-800/50
+                    hover:bg-slate-700
+                    transition
+                    text-sm
+                  "
                 >
-                  {message.content}
-                </div>
-              </div>
-            ))}
+                  {item.title ||
+                    item.user_message.slice(0, 40)}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex gap-4">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask your AI DevOps assistant..."
-              className="
-                flex-1
-                bg-slate-800/80
-                border
-                border-slate-700
-                rounded-2xl
-                px-5
-                py-4
-                outline-none
-                focus:border-blue-500
-                transition
-              "
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  sendMessage()
-                }
-              }}
-            />
+          <div className="flex-1">
 
-            <button
-              onClick={sendMessage}
+            <div
               className="
-                bg-gradient-to-r
-                from-blue-600
-                to-purple-600
-                hover:from-blue-500
-                hover:to-purple-500
-                rounded-2xl
-                px-8
-                py-4
-                font-semibold
-                transition
-                shadow-lg
-                shadow-blue-500/20
+                bg-slate-900/70
+                backdrop-blur-xl
+                border
+                border-slate-800
+                rounded-3xl
+                p-6
+                h-[650px]
+                flex
+                flex-col
+                shadow-2xl
+                shadow-blue-500/10
               "
             >
-              Send
-            </button>
-          </div>
-        </div>
+              <div className="flex-1 overflow-auto space-y-5 mb-5 pr-2">
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${
+                      message.role === 'user'
+                        ? 'justify-end'
+                        : 'justify-start'
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-3xl px-5 py-4 ${
+                        message.role === 'user'
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600'
+                          : 'bg-slate-800/80 border border-slate-700'
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
 
+              <div className="flex gap-4">
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask your AI DevOps assistant..."
+                  className="
+                    flex-1
+                    bg-slate-800/80
+                    border
+                    border-slate-700
+                    rounded-2xl
+                    px-5
+                    py-4
+                    outline-none
+                    focus:border-blue-500
+                    transition
+                  "
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      sendMessage()
+                    }
+                  }}
+                />
+
+                <button
+                  onClick={sendMessage}
+                  className="
+                    bg-gradient-to-r
+                    from-blue-600
+                    to-purple-600
+                    hover:from-blue-500
+                    hover:to-purple-500
+                    rounded-2xl
+                    px-8
+                    py-4
+                    font-semibold
+                    transition
+                  "
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
       </div>
     </main>
   )
 }
+```
