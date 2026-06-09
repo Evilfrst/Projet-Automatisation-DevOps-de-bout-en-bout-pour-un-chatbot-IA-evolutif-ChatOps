@@ -81,7 +81,7 @@ resource "aws_route_table" "public" {
 ########################################
 
 resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.main.id
+  subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
 }
 
@@ -202,7 +202,7 @@ resource "aws_instance" "chatops_ec2" {
   ami                         = "ami-0be40a46b4111e7f5"
   instance_type               = "t3.micro"
   key_name                    = var.key_name
-  subnet_id                   = aws_subnet.main.id
+  subnet_id                   = aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.chatops_sg.id]
   associate_public_ip_address = true
 
