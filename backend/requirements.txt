@@ -6,3 +6,4 @@ prometheus-fastapi-instrumentator
 sqlalchemy
 psycopg2-binary
 alembic
+requests
