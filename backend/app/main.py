@@ -262,47 +262,62 @@ async def chat(data: ChatRequest):
 
         message = response.choices[0].message
 
-        if message.tool_calls:
+tool_calls = getattr(message, "tool_calls", None)
 
-            tool_call = message.tool_calls[0]
+if tool_calls:
 
-            function_name = tool_call.function.name
+    tool_call = tool_calls[0]
 
-            logger.info(
-                f"Tool appelé : {function_name}"
-            )
+    function_name = tool_call.function.name
 
-            tool_result = execute_function(
-                function_name
-            )
+    logger.info(
+        f"Tool appelé : {function_name}"
+    )
 
-            final_response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": data.prompt
-                    },
-                    message.model_dump(),
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(tool_result)
-                    }
-                ]
-            )
+    tool_result = execute_function(
+        function_name
+    )
 
-            answer = (
-                final_response
-                .choices[0]
-                .message
-                .content
-            )
+    final_response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "user",
+                "content": data.prompt
+            },
+            (
+                message.model_dump()
+                if hasattr(message, "model_dump")
+                else {
+                    "role": "assistant",
+                    "content": getattr(
+                        message,
+                        "content",
+                        ""
+                    )
+                }
+            ),
+            {
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": json.dumps(tool_result)
+            }
+        ]
+    )
 
-        else:
+    answer = getattr(
+        final_response.choices[0].message,
+        "content",
+        "Aucune réponse générée"
+    )
 
-            answer = message.content
+else:
 
+    answer = getattr(
+        message,
+        "content",
+        "Aucune réponse générée"
+    )
         try:
 
             conversation = Conversation(
