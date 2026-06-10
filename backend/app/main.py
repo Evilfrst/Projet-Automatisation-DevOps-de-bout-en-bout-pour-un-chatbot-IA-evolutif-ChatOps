@@ -161,16 +161,27 @@ async def health():
 
 def execute_function(function_name):
 
-    if function_name == "list_pods":
+    if function_name == "cluster_health":
+        return cluster_health()
+
+    elif function_name == "cpu_usage":
+        return cpu_usage()
+
+    elif function_name == "memory_usage":
+        return memory_usage()
+
+    elif function_name == "pod_count":
+        return pod_count()
+
+    elif function_name == "list_pods":
         return list_pods()
 
     elif function_name == "list_ec2":
         return list_ec2()
 
-    elif function_name == "cluster_health":
-        return cluster_health()
-
-    return {"error": "Unknown function"}
+    return {
+        "error": "Unknown function"
+    }
 
 # ==================================================
 # CHAT ENDPOINT
@@ -377,7 +388,20 @@ def get_conversation(conversation_id: int):
     finally:
 
         db.close()
+        
+# ==================================================
+# REST
+# ==================================================
 
+@app.get("/monitoring/metrics")
+def monitoring_metrics():
+
+    return {
+        "health": cluster_health(),
+        "cpu": cpu_usage(),
+        "memory": memory_usage(),
+        "pods": pod_count()
+    }
 
 # ==================================================
 # PROMETHEUS
