@@ -13,7 +13,14 @@ import os
 import logging
 import json
 
-from .kubernetes_service import list_pods
+from .kubernetes_service import (
+    list_pods,
+    list_deployments,
+    list_services,
+    failed_pods,
+    pod_logs,
+    restart_deployment
+)
 from .aws_service import list_ec2
 from .prometheus_service import cluster_health
 
@@ -126,7 +133,27 @@ TOOLS = [
             "description": "Retourne la santé du cluster Prometheus"
         }
     }
-
+{
+    "type": "function",
+    "function": {
+        "name": "list_deployments",
+        "description": "Liste tous les deployments Kubernetes"
+    }
+}
+{
+    "type": "function",
+    "function": {
+        "name": "list_services",
+        "description": "Liste tous les services Kubernetes"
+    }
+},
+{
+    "type": "function",
+    "function": {
+        "name": "failed_pods",
+        "description": "Liste les pods en erreur"
+    }
+}
 ]
 # ==================================================
 # REQUEST MODEL
@@ -161,20 +188,20 @@ async def health():
 
 def execute_function(function_name):
 
-    if function_name == "cluster_health":
-        return cluster_health()
-
-    elif function_name == "cpu_usage":
-        return cpu_usage()
-
-    elif function_name == "memory_usage":
-        return memory_usage()
-
-    elif function_name == "pod_count":
-        return pod_count()
-
-    elif function_name == "list_pods":
+    if function_name == "list_pods":
         return list_pods()
+
+    elif function_name == "list_deployments":
+        return list_deployments()
+
+    elif function_name == "list_services":
+        return list_services()
+
+    elif function_name == "failed_pods":
+        return failed_pods()
+
+    elif function_name == "cluster_health":
+        return cluster_health()
 
     elif function_name == "list_ec2":
         return list_ec2()
@@ -402,6 +429,24 @@ def monitoring_metrics():
         "memory": memory_usage(),
         "pods": pod_count()
     }
+@app.get("/k8s/pods")
+def get_pods():
+    return list_pods()
+
+
+@app.get("/k8s/deployments")
+def get_deployments():
+    return list_deployments()
+
+
+@app.get("/k8s/services")
+def get_services():
+    return list_services()
+
+
+@app.get("/k8s/failed-pods")
+def get_failed_pods():
+    return failed_pods()
 
 # ==================================================
 # PROMETHEUS
