@@ -9,20 +9,23 @@ from openai import OpenAI
 from .database import SessionLocal, engine
 from .models import Conversation, Base
 
-import os
-import logging
-import json
-
 from .kubernetes_service import (
     list_pods,
     list_deployments,
     list_services,
-    failed_pods,
-    pod_logs,
-    restart_deployment
+    failed_pods
 )
-from .aws_service import list_ec2
-from .prometheus_service import cluster_health
+
+from .prometheus_service import (
+    cluster_health,
+    cpu_usage,
+    memory_usage,
+    pod_count
+)
+
+import os
+import json
+import logging
 
 
 # ==================================================
@@ -103,64 +106,103 @@ client = None
 
 if OPENAI_API_KEY:
     client = OpenAI(api_key=OPENAI_API_KEY)
-    
+
+
 # ==================================================
-# TOOLS OPENAI
+# OPENAI TOOLS
 # ==================================================
 
 TOOLS = [
-
     {
         "type": "function",
         "function": {
             "name": "list_pods",
-            "description": "Liste tous les pods Kubernetes"
+            "description": "Liste tous les pods Kubernetes",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
         }
     },
-
     {
         "type": "function",
         "function": {
-            "name": "list_ec2",
-            "description": "Liste les instances EC2 AWS"
+            "name": "list_deployments",
+            "description": "Liste tous les deployments Kubernetes",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
         }
     },
-
+    {
+        "type": "function",
+        "function": {
+            "name": "list_services",
+            "description": "Liste tous les services Kubernetes",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "failed_pods",
+            "description": "Liste les pods en erreur",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
     {
         "type": "function",
         "function": {
             "name": "cluster_health",
-            "description": "Retourne la santé du cluster Prometheus"
+            "description": "Retourne la santé du cluster Prometheus",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
         }
     }
-{
-    "type": "function",
-    "function": {
-        "name": "list_deployments",
-        "description": "Liste tous les deployments Kubernetes"
-    }
-}
-{
-    "type": "function",
-    "function": {
-        "name": "list_services",
-        "description": "Liste tous les services Kubernetes"
-    }
-},
-{
-    "type": "function",
-    "function": {
-        "name": "failed_pods",
-        "description": "Liste les pods en erreur"
-    }
-}
 ]
+
+
 # ==================================================
 # REQUEST MODEL
 # ==================================================
 
 class ChatRequest(BaseModel):
     prompt: str
+
+
+# ==================================================
+# TOOL EXECUTION
+# ==================================================
+
+def execute_function(function_name):
+
+    if function_name == "list_pods":
+        return list_pods()
+
+    if function_name == "list_deployments":
+        return list_deployments()
+
+    if function_name == "list_services":
+        return list_services()
+
+    if function_name == "failed_pods":
+        return failed_pods()
+
+    if function_name == "cluster_health":
+        return cluster_health()
+
+    return {
+        "error": f"Function {function_name} not found"
+    }
 
 
 # ==================================================
@@ -186,29 +228,6 @@ async def health():
         "status": "healthy"
     }
 
-def execute_function(function_name):
-
-    if function_name == "list_pods":
-        return list_pods()
-
-    elif function_name == "list_deployments":
-        return list_deployments()
-
-    elif function_name == "list_services":
-        return list_services()
-
-    elif function_name == "failed_pods":
-        return failed_pods()
-
-    elif function_name == "cluster_health":
-        return cluster_health()
-
-    elif function_name == "list_ec2":
-        return list_ec2()
-
-    return {
-        "error": "Unknown function"
-    }
 
 # ==================================================
 # CHAT ENDPOINT
@@ -241,51 +260,48 @@ async def chat(data: ChatRequest):
             tool_choice="auto"
         )
 
-        answer = response.choices[0].message
+        message = response.choices[0].message
+
         if message.tool_calls:
 
-    tool_call = message.tool_calls[0]
+            tool_call = message.tool_calls[0]
 
-    function_name = tool_call.function.name
+            function_name = tool_call.function.name
 
-    logger.info(
-        f"Tool appelé : {function_name}"
-    )
+            logger.info(
+                f"Tool appelé : {function_name}"
+            )
 
-    tool_result = execute_function(
-        function_name
-    )
+            tool_result = execute_function(
+                function_name
+            )
 
-    final_response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
+            final_response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": data.prompt
+                    },
+                    message.model_dump(),
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(tool_result)
+                    }
+                ]
+            )
 
-            {
-                "role": "user",
-                "content": data.prompt
-            },
+            answer = (
+                final_response
+                .choices[0]
+                .message
+                .content
+            )
 
-            message,
+        else:
 
-            {
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": json.dumps(tool_result)
-            }
-
-        ]
-    )
-
-    answer = (
-        final_response
-        .choices[0]
-        .message
-        .content
-    )
-
-else:
-
-    answer = message.content
+            answer = message.content
 
         try:
 
@@ -367,22 +383,10 @@ def get_history():
             for c in conversations
         ]
 
-    except Exception as e:
-
-        logger.warning(
-            f"Historique indisponible : {e}"
-        )
-
-        return []
-
     finally:
 
         db.close()
 
-
-# ==================================================
-# GET ONE CONVERSATION
-# ==================================================
 
 @app.get("/history/{conversation_id}")
 def get_conversation(conversation_id: int):
@@ -400,7 +404,6 @@ def get_conversation(conversation_id: int):
         )
 
         if not conversation:
-
             raise HTTPException(
                 status_code=404,
                 detail="Conversation not found"
@@ -415,20 +418,12 @@ def get_conversation(conversation_id: int):
     finally:
 
         db.close()
-        
+
+
 # ==================================================
-# REST
+# KUBERNETES REST API
 # ==================================================
 
-@app.get("/monitoring/metrics")
-def monitoring_metrics():
-
-    return {
-        "health": cluster_health(),
-        "cpu": cpu_usage(),
-        "memory": memory_usage(),
-        "pods": pod_count()
-    }
 @app.get("/k8s/pods")
 def get_pods():
     return list_pods()
@@ -448,8 +443,44 @@ def get_services():
 def get_failed_pods():
     return failed_pods()
 
+
+@app.get("/k8s/health")
+def kubernetes_health():
+
+    try:
+
+        pods = list_pods()
+
+        return {
+            "status": "healthy",
+            "pods_count": len(pods)
+        }
+
+    except Exception as e:
+
+        return {
+            "status": "unhealthy",
+            "error": str(e)
+        }
+
+
 # ==================================================
-# PROMETHEUS
+# MONITORING
+# ==================================================
+
+@app.get("/monitoring/metrics")
+def monitoring_metrics():
+
+    return {
+        "health": cluster_health(),
+        "cpu": cpu_usage(),
+        "memory": memory_usage(),
+        "pods": pod_count()
+    }
+
+
+# ==================================================
+# PROMETHEUS EXPORTER
 # ==================================================
 
 Instrumentator().instrument(app).expose(app)
