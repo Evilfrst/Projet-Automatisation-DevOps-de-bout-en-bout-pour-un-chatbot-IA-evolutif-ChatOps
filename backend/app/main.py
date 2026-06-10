@@ -11,6 +11,11 @@ from .models import Conversation, Base
 
 import os
 import logging
+import json
+
+from .kubernetes_service import list_pods
+from .aws_service import list_ec2
+from .prometheus_service import cluster_health
 
 
 # ==================================================
@@ -91,8 +96,38 @@ client = None
 
 if OPENAI_API_KEY:
     client = OpenAI(api_key=OPENAI_API_KEY)
+    
+# ==================================================
+# TOOLS OPENAI
+# ==================================================
 
+TOOLS = [
 
+    {
+        "type": "function",
+        "function": {
+            "name": "list_pods",
+            "description": "Liste tous les pods Kubernetes"
+        }
+    },
+
+    {
+        "type": "function",
+        "function": {
+            "name": "list_ec2",
+            "description": "Liste les instances EC2 AWS"
+        }
+    },
+
+    {
+        "type": "function",
+        "function": {
+            "name": "cluster_health",
+            "description": "Retourne la santé du cluster Prometheus"
+        }
+    }
+
+]
 # ==================================================
 # REQUEST MODEL
 # ==================================================
@@ -124,6 +159,18 @@ async def health():
         "status": "healthy"
     }
 
+def execute_function(function_name):
+
+    if function_name == "list_pods":
+        return list_pods()
+
+    elif function_name == "list_ec2":
+        return list_ec2()
+
+    elif function_name == "cluster_health":
+        return cluster_health()
+
+    return {"error": "Unknown function"}
 
 # ==================================================
 # CHAT ENDPOINT
@@ -152,11 +199,55 @@ async def chat(data: ChatRequest):
                     "content": data.prompt
                 }
             ],
-            temperature=0.7,
-            max_tokens=300
+            tools=TOOLS,
+            tool_choice="auto"
         )
 
-        answer = response.choices[0].message.content
+        answer = response.choices[0].message
+        if message.tool_calls:
+
+    tool_call = message.tool_calls[0]
+
+    function_name = tool_call.function.name
+
+    logger.info(
+        f"Tool appelé : {function_name}"
+    )
+
+    tool_result = execute_function(
+        function_name
+    )
+
+    final_response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+
+            {
+                "role": "user",
+                "content": data.prompt
+            },
+
+            message,
+
+            {
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": json.dumps(tool_result)
+            }
+
+        ]
+    )
+
+    answer = (
+        final_response
+        .choices[0]
+        .message
+        .content
+    )
+
+else:
+
+    answer = message.content
 
         try:
 
