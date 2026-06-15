@@ -1,34 +1,30 @@
 from .database import SessionLocal
 from .models import AuditLog
+import logging
 
-def save_audit_log(
-username: str,
-action: str,
-target: str = ""
-):
+logger = logging.getLogger(__name__)
 
-db = SessionLocal()
 
-try:
+def save_audit_log(username: str, action: str, target: str = None):
+    db = SessionLocal()
 
-    audit = AuditLog(
-        username=username,
-        action=action,
-        target=target
-    )
+    try:
+        log = AuditLog(
+            username=username,
+            action=action,
+            target=target
+        )
 
-    db.add(audit)
-    db.commit()
+        db.add(log)
+        db.commit()
 
-except Exception as e:
+        logger.info(
+            f"Audit log saved: {username} - {action}"
+        )
 
-    db.rollback()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Audit log error: {e}")
 
-    print(
-        f"Audit error: {e}"
-    )
-
-finally:
-
-    db.close()
-
+    finally:
+        db.close()
