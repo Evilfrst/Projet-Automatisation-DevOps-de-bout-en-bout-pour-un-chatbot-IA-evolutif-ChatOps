@@ -17,7 +17,9 @@ from .kubernetes_service import (
     list_pods,
     list_deployments,
     list_services,
-    failed_pods
+    failed_pods,
+    pod_logs,
+    restart_deployment
 )
 
 from .prometheus_service import (
@@ -171,7 +173,51 @@ TOOLS = [
                 "properties": {}
             }
         }
+    },
+    {
+    "type": "function",
+    "function": {
+        "name": "pod_logs",
+        "description": "Retourne les logs d'un pod Kubernetes",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "namespace": {
+                    "type": "string"
+                },
+                "pod_name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "namespace",
+                "pod_name"
+            ]
+        }
     }
+},
+{
+    "type": "function",
+    "function": {
+        "name": "restart_deployment",
+        "description": "Redémarre un deployment Kubernetes",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "namespace": {
+                    "type": "string"
+                },
+                "deployment_name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "namespace",
+                "deployment_name"
+            ]
+        }
+    }
+}
 ]
 
 
@@ -282,7 +328,18 @@ def login(data: LoginRequest):
 # TOOL EXECUTION
 # ==================================================
 
-def execute_function(function_name):
+def execute_function(
+    function_name,
+    arguments=None,
+    username="system"
+):
+
+    save_audit_log(
+        username=username,
+        action=function_name
+    )
+
+    arguments = arguments or {}
 
     if function_name == "list_pods":
         return list_pods()
@@ -299,9 +356,56 @@ def execute_function(function_name):
     if function_name == "cluster_health":
         return cluster_health()
 
+    if function_name == "pod_logs":
+
+        return pod_logs(
+            arguments["namespace"],
+            arguments["pod_name"]
+        )
+
+    if function_name == "restart_deployment":
+
+        return restart_deployment(
+            arguments["namespace"],
+            arguments["deployment_name"]
+        )
+
     return {
-        "error": f"Function {function_name} not found"
+        "error": "Function not found"
     }
+
+# ==================================================
+# AUDIT ENDPOINT
+# ==================================================
+
+@app.get("/audit")
+def get_audit_logs():
+
+    db = SessionLocal()
+
+    try:
+
+        logs = (
+            db.query(AuditLog)
+            .order_by(
+                AuditLog.id.desc()
+            )
+            .all()
+        )
+
+        return [
+            {
+                "id": log.id,
+                "username": log.username,
+                "action": log.action,
+                "target": log.target,
+                "created_at": log.created_at
+            }
+            for log in logs
+        ]
+
+    finally:
+        db.close()
 
 
 # ==================================================
@@ -372,13 +476,17 @@ async def chat(data: ChatRequest):
             tool_call = tool_calls[0]
 
             function_name = tool_call.function.name
+            arguments = json.loads(
+            tool_call.function.arguments
+            )
 
             logger.info(
                 f"Tool appelé : {function_name}"
             )
 
             tool_result = execute_function(
-                function_name
+                function_name,
+                arguments
             )
 
             final_response = client.chat.completions.create(
@@ -581,8 +689,28 @@ def kubernetes_health():
             "status": "unhealthy",
             "error": str(e)
         }
+        
+@app.get("/k8s/logs")
+def get_logs(
+    namespace: str,
+    pod_name: str
+):
 
+    return pod_logs(
+        namespace,
+        pod_name
+    )
 
+@app.post("/k8s/restart")
+def restart(
+    namespace: str,
+    deployment_name: str
+):
+
+    return restart_deployment(
+        namespace,
+        deployment_name
+    )
 # ==================================================
 # MONITORING
 # ==================================================
