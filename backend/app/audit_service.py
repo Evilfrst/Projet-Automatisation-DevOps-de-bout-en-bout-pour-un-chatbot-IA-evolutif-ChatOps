@@ -7,7 +7,6 @@ action: str,
 target: str = ""
 ):
 
-```
 db = SessionLocal()
 
 try:
@@ -32,4 +31,4 @@ except Exception as e:
 finally:
 
     db.close()
-```
+
