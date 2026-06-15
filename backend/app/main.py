@@ -177,7 +177,9 @@ TOOLS = [
 # ==================================================
 # REQUEST MODEL
 # ==================================================
-
+class ChatRequest(BaseModel):
+    prompt: str
+    
 class RegisterRequest(BaseModel):
     username: str
     email: str
