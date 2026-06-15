@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter
 from openai import OpenAI
+from .auth import hash_password, verify_password
+from .security import create_access_token
+from .models import User
 
 from .database import SessionLocal, engine
 from .models import Conversation, Base
@@ -175,8 +178,101 @@ TOOLS = [
 # REQUEST MODEL
 # ==================================================
 
-class ChatRequest(BaseModel):
-    prompt: str
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+# ==================================================
+# REGISTER
+# ==================================================
+
+@app.post("/register")
+def register(data: RegisterRequest):
+
+    db = SessionLocal()
+
+    try:
+
+        existing_user = (
+            db.query(User)
+            .filter(User.username == data.username)
+            .first()
+        )
+
+        if existing_user:
+            raise HTTPException(
+                status_code=400,
+                detail="Utilisateur déjà existant"
+            )
+
+        user = User(
+            username=data.username,
+            email=data.email,
+            password_hash=hash_password(
+                data.password
+            ),
+            role="viewer"
+        )
+
+        db.add(user)
+        db.commit()
+
+        return {
+            "message": "Utilisateur créé"
+        }
+
+    finally:
+        db.close()
+
+
+@app.post("/login")
+def login(data: LoginRequest):
+
+    db = SessionLocal()
+
+    try:
+
+        user = (
+            db.query(User)
+            .filter(User.username == data.username)
+            .first()
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=401,
+                detail="Utilisateur inconnu"
+            )
+
+        if not verify_password(
+            data.password,
+            user.password_hash
+        ):
+            raise HTTPException(
+                status_code=401,
+                detail="Mot de passe incorrect"
+            )
+
+        token = create_access_token(
+            {
+                "sub": user.username,
+                "role": user.role
+            }
+        )
+
+        return {
+            "access_token": token,
+            "role": user.role
+        }
+
+    finally:
+        db.close()
 
 
 # ==================================================
