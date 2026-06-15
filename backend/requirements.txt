@@ -8,6 +8,7 @@ psycopg2-binary
 alembic
 requests
 kubernetes
+
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
