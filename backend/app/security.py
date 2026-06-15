@@ -1,20 +1,52 @@
 from jose import jwt
 from datetime import datetime, timedelta
+import os
 
-SECRET_KEY = "CHANGE_ME"
+SECRET_KEY = os.getenv(
+"JWT_SECRET",
+"CHANGE_ME_IN_PRODUCTION"
+)
 
 ALGORITHM = "HS256"
 
-def create_access_token(data):
+ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-    payload = data.copy()
+def create_access_token(data: dict):
 
-    payload.update({
-        "exp": datetime.utcnow() + timedelta(hours=24)
-    })
+```
+payload = data.copy()
 
-    return jwt.encode(
-        payload,
+payload.update(
+    {
+        "exp":
+        datetime.utcnow()
+        + timedelta(
+            hours=ACCESS_TOKEN_EXPIRE_HOURS
+        )
+    }
+)
+
+return jwt.encode(
+    payload,
+    SECRET_KEY,
+    algorithm=ALGORITHM
+)
+```
+
+def verify_token(token: str):
+
+```
+try:
+
+    payload = jwt.decode(
+        token,
         SECRET_KEY,
-        algorithm=ALGORITHM
+        algorithms=[ALGORITHM]
     )
+
+    return payload
+
+except Exception:
+
+    return None
+```
