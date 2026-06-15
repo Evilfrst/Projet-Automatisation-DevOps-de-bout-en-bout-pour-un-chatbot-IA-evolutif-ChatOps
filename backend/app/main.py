@@ -8,6 +8,7 @@ from openai import OpenAI
 from .auth import hash_password, verify_password
 from .security import create_access_token
 from .models import User
+from .audit_service import save_audit_log
 
 from .database import SessionLocal, engine
 from .models import Conversation, Base
