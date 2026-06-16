@@ -1,43 +1,41 @@
-from jose import jwt
-from datetime import datetime, timedelta
-import os
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from .database import SessionLocal
+from .models import User
 
-SECRET_KEY = os.getenv(
-    "JWT_SECRET",
-    "CHANGE_ME_IN_PRODUCTION"
-)
+security = HTTPBearer()
 
-ALGORITHM = "HS256"
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
 
-ACCESS_TOKEN_EXPIRE_HOURS = 24
+    payload = verify_token(token)
 
-
-def create_access_token(data: dict):
-    payload = data.copy()
-
-    payload.update(
-        {
-            "exp": datetime.utcnow()
-            + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-        }
-    )
-
-    return jwt.encode(
-        payload,
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
-
-
-def verify_token(token: str):
-    try:
-        payload = jwt.decode(
-            token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
+    if not payload:
+        raise HTTPException(
+            status_code=401,
+            detail="Token invalide"
         )
 
-        return payload
+    db = SessionLocal()
 
-    except Exception:
-        return None
+    try:
+        user = (
+            db.query(User)
+            .filter(
+                User.username == payload["sub"]
+            )
+            .first()
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=401,
+                detail="Utilisateur introuvable"
+            )
+
+        return user
+
+    finally:
+        db.close()
