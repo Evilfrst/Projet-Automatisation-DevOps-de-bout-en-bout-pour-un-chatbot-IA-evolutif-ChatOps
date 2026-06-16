@@ -533,6 +533,7 @@ async def chat(data: ChatRequest):
         try:
 
             conversation = Conversation(
+                user_id=current_user.id,
                 user_message=data.prompt,
                 ai_response=answer
             )
