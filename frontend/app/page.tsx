@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
@@ -27,10 +28,24 @@ export default function Home() {
 
   const [history, setHistory] = useState<ConversationHistory[]>([])
 
+  const router = useRouter()
+
+  const logout = () => {
+    localStorage.removeItem('token')
+    window.location.href = '/login'
+  }
+
   const loadHistory = async () => {
+    const token = localStorage.getItem('token')
+
     try {
       const response = await fetch(
-        'http://35.181.183.50:8000/history'
+        'http://35.181.183.50:8000/history',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       )
 
       if (!response.ok) return
@@ -39,25 +54,43 @@ export default function Home() {
 
       setHistory(data)
     } catch (error) {
-      console.error('Erreur chargement historique :', error)
+      console.error(
+        'Erreur chargement historique :',
+        error
+      )
     }
   }
 
   useEffect(() => {
+    const token =
+      localStorage.getItem('token')
+
+    if (!token) {
+      router.push('/login')
+      return
+    }
+
     loadHistory()
-  }, [])
+  }, [router])
 
   const sendMessage = async () => {
     if (!input.trim()) return
+
+    const token =
+      localStorage.getItem('token')
 
     const userMessage: Message = {
       role: 'user',
       content: input,
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    setMessages((prev) => [
+      ...prev,
+      userMessage,
+    ])
 
     const currentInput = input
+
     setInput('')
 
     try {
@@ -66,7 +99,10 @@ export default function Home() {
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type':
+              'application/json',
+            Authorization:
+              `Bearer ${token}`,
           },
           body: JSON.stringify({
             prompt: currentInput,
@@ -75,10 +111,13 @@ export default function Home() {
       )
 
       if (!response.ok) {
-        throw new Error('Erreur backend')
+        throw new Error(
+          'Erreur backend'
+        )
       }
 
-      const data = await response.json()
+      const data =
+        await response.json()
 
       await loadHistory()
 
@@ -90,13 +129,17 @@ export default function Home() {
         },
       ])
     } catch (error) {
-      console.error('Erreur API :', error)
+      console.error(
+        'Erreur API :',
+        error
+      )
 
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: 'Erreur de connexion au backend ❌',
+          content:
+            'Erreur de connexion au backend ❌',
         },
       ])
     }
@@ -117,6 +160,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto">
 
         <header className="flex items-center justify-between mb-12">
+
           <div className="flex items-center gap-4">
             <Image
               src="/chatops-logo.png"
@@ -137,7 +181,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="hidden md:flex gap-3">
+          <div className="hidden md:flex gap-3 items-center">
+
             <span className="px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">
               AI Powered
             </span>
@@ -149,16 +194,37 @@ export default function Home() {
             <span className="px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
               Production Ready
             </span>
+
+            <button
+              onClick={logout}
+              className="
+                px-4
+                py-2
+                rounded-full
+                bg-red-500/10
+                border
+                border-red-500/20
+                text-red-400
+                text-sm
+                hover:bg-red-500/20
+              "
+            >
+              Déconnexion
+            </button>
+
           </div>
+
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+
           {[
             ['CPU Usage', '43%'],
             ['RAM Usage', '68%'],
             ['Pods Running', '12'],
             ['CI/CD', 'Healthy'],
           ].map(([title, value]) => (
+
             <div
               key={title}
               className="
@@ -172,7 +238,9 @@ export default function Home() {
                 shadow-blue-500/5
               "
             >
-              <p className="text-slate-400">{title}</p>
+              <p className="text-slate-400">
+                {title}
+              </p>
 
               <h2 className="text-4xl font-bold mt-3">
                 {value}
@@ -180,7 +248,6 @@ export default function Home() {
             </div>
           ))}
         </div>
-
         <div className="flex gap-6">
 
           <div
