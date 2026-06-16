@@ -442,10 +442,7 @@ async def health():
 
 @app.post("/chat")
 async def chat(
-    data: ChatRequest,
-    current_user: User = Depends(
-        get_current_user
-    )
+    data: ChatRequest
 ):
 
     db = SessionLocal()
@@ -542,7 +539,7 @@ async def chat(
         try:
 
             conversation = Conversation(
-                user_id=current_user.id,
+                user_id=1,
                 user_message=data.prompt,
                 ai_response=answer
             )
