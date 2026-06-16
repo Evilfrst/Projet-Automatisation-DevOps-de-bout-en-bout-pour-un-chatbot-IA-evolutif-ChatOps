@@ -5,8 +5,12 @@ from dotenv import load_dotenv
 from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter
 from openai import OpenAI
+from fastapi import Depends
 from .auth import hash_password, verify_password
-from .security import create_access_token
+from .security import (
+    create_access_token,
+    get_current_user
+)
 from .models import User
 from .audit_service import save_audit_log
 
@@ -437,7 +441,12 @@ async def health():
 # ==================================================
 
 @app.post("/chat")
-async def chat(data: ChatRequest):
+async def chat(
+    data: ChatRequest,
+    current_user: User = Depends(
+        get_current_user
+    )
+):
 
     db = SessionLocal()
 
@@ -585,7 +594,11 @@ async def chat(data: ChatRequest):
 # ==================================================
 
 @app.get("/history")
-def get_history():
+def get_history(
+    current_user: User = Depends(
+        get_current_user
+    )
+):
 
     db = SessionLocal()
 
@@ -593,7 +606,8 @@ def get_history():
 
         conversations = (
             db.query(Conversation)
-            .order_by(Conversation.id.desc())
+            .filter(Conversation.user_id ==
+              current_user.id)
             .all()
         )
 
