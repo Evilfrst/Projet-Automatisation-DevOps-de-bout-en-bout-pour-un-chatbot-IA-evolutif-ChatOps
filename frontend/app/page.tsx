@@ -16,6 +16,13 @@ type ConversationHistory = {
   ai_response: string
 }
 
+type Metrics = {
+  cpu: number
+  ram: number
+  pods: number
+  cicd: string
+}
+
 export default function Home() {
   const [input, setInput] = useState('')
 
@@ -27,6 +34,13 @@ export default function Home() {
   ])
 
   const [history, setHistory] = useState<ConversationHistory[]>([])
+
+  const [metrics, setMetrics] = useState<Metrics>({
+    cpu: 0,
+    ram: 0,
+    pods: 0,
+    cicd: 'Loading...',
+  })
 
   const router = useRouter()
 
@@ -61,6 +75,37 @@ export default function Home() {
     }
   }
 
+  const loadMetrics = async () => {
+    const token = localStorage.getItem('token')
+
+    try {
+      const response = await fetch(
+        'http://35.181.183.50:8000/monitoring/metrics',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      if (!response.ok) return
+
+      const data = await response.json()
+
+      setMetrics({
+        cpu: data.cpu ?? 0,
+        ram: data.ram ?? 0,
+        pods: data.pods ?? 0,
+        cicd: data.cicd ?? 'Unknown',
+      })
+    } catch (error) {
+      console.error(
+        'Erreur chargement métriques :',
+        error
+      )
+    }
+  }
+
   useEffect(() => {
     const token =
       localStorage.getItem('token')
@@ -71,6 +116,14 @@ export default function Home() {
     }
 
     loadHistory()
+    loadMetrics()
+
+    const interval = setInterval(() => {
+      loadMetrics()
+    }, 5000)
+
+    return () => clearInterval(interval)
+
   }, [router])
 
   const sendMessage = async () => {
@@ -219,10 +272,10 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
 
           {[
-            ['CPU Usage', '43%'],
-            ['RAM Usage', '68%'],
-            ['Pods Running', '12'],
-            ['CI/CD', 'Healthy'],
+            ['CPU Usage', `${metrics.cpu}%`],
+            ['RAM Usage', `${metrics.ram}%`],
+            ['Pods Running', `${metrics.pods}`],
+            ['CI/CD', metrics.cicd],
           ].map(([title, value]) => (
 
             <div
@@ -249,7 +302,6 @@ export default function Home() {
           ))}
         </div>
         <div className="flex gap-6">
-
           <div
             className="
               w-80
