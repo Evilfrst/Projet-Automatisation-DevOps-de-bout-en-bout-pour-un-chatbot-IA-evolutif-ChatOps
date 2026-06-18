@@ -1,34 +1,51 @@
 from kubernetes import client, config
 from datetime import datetime
+import os
+
+LAST_K8S_ERROR = None
 
 
 def load_cluster():
-    """
-    Charge la configuration Kubernetes.
-    Retourne True si le cluster est disponible,
-    False sinon.
-    """
+    global LAST_K8S_ERROR
 
     try:
         config.load_incluster_config()
+        LAST_K8S_ERROR = None
         return True
 
-    except Exception:
-
+    except Exception as incluster_error:
         try:
-            config.load_kube_config()
+            kubeconfig_path = os.getenv(
+                "KUBECONFIG",
+                "/root/.kube/config"
+            )
+
+            config.load_kube_config(
+                config_file=kubeconfig_path
+            )
+
+            LAST_K8S_ERROR = None
             return True
 
-        except Exception:
+        except Exception as kubeconfig_error:
+            LAST_K8S_ERROR = (
+                f"incluster error: {incluster_error} | "
+                f"kubeconfig error: {kubeconfig_error}"
+            )
             return False
+
+
+def cluster_unavailable_response():
+    return {
+        "error": "Kubernetes cluster unavailable",
+        "detail": LAST_K8S_ERROR
+    }
 
 
 def list_pods():
 
     if not load_cluster():
-        return {
-            "error": "Kubernetes cluster unavailable"
-        }
+       return cluster_unavailable_response()
 
     try:
         v1 = client.CoreV1Api()
@@ -51,9 +68,7 @@ def list_pods():
 def list_deployments():
 
     if not load_cluster():
-        return {
-            "error": "Kubernetes cluster unavailable"
-        }
+       return cluster_unavailable_response()
 
     try:
         apps = client.AppsV1Api()
@@ -101,9 +116,7 @@ def list_services():
 def failed_pods():
 
     if not load_cluster():
-        return {
-            "error": "Kubernetes cluster unavailable"
-        }
+       return cluster_unavailable_response()
 
     try:
         v1 = client.CoreV1Api()
@@ -127,9 +140,7 @@ def failed_pods():
 def pod_logs(namespace, pod_name):
 
     if not load_cluster():
-        return {
-            "error": "Kubernetes cluster unavailable"
-        }
+       return cluster_unavailable_response()
 
     try:
         v1 = client.CoreV1Api()
@@ -147,10 +158,7 @@ def pod_logs(namespace, pod_name):
 def restart_deployment(namespace, deployment_name):
 
     if not load_cluster():
-        return {
-            "error": "Kubernetes cluster unavailable"
-        }
-
+       return cluster_unavailable_response()
     try:
         apps = client.AppsV1Api()
 
