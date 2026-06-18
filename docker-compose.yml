@@ -1,9 +1,9 @@
 services:
 
- backend:
-  build:
-    context: ./backend
-    dockerfile: dockerfile
+  backend:
+    build:
+      context: ./backend
+      dockerfile: dockerfile
     container_name: chatops-backend
 
     ports:
@@ -15,23 +15,24 @@ services:
     environment:
       DATABASE_URL: postgresql://chatops:chatops123@postgres:5432/chatops
       KUBECONFIG: /root/.kube/config
+
     volumes:
-      - /home/ubuntu/.kube/config-docker:/root/.kube/config:ro 
+      - /home/ubuntu/.kube/config-docker:/root/.kube/config:ro
 
     depends_on:
       - postgres
 
   frontend:
-  build:
-    context: ./frontend
-    dockerfile: dockerfile
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
     container_name: chatops-frontend
 
-  ports:
-    - "3000:3000"
+    ports:
+      - "3000:3000"
 
-  depends_on:
-    - backend
+    depends_on:
+      - backend
 
   postgres:
     image: postgres:16
@@ -53,6 +54,8 @@ services:
   prometheus:
     image: prom/prometheus
     container_name: prometheus
+    profiles:
+      - monitoring
 
     ports:
       - "9090:9090"
@@ -64,6 +67,8 @@ services:
   alertmanager:
     image: prom/alertmanager
     container_name: alertmanager
+    profiles:
+      - monitoring
 
     ports:
       - "9093:9093"
@@ -74,6 +79,8 @@ services:
   grafana:
     image: grafana/grafana
     container_name: grafana
+    profiles:
+      - monitoring
 
     ports:
       - "3001:3000"
@@ -89,6 +96,8 @@ services:
   loki:
     image: grafana/loki:latest
     container_name: loki
+    profiles:
+      - monitoring
 
     ports:
       - "3100:3100"
@@ -98,6 +107,8 @@ services:
   promtail:
     image: grafana/promtail:latest
     container_name: promtail
+    profiles:
+      - monitoring
 
     volumes:
       - /var/log:/var/log
@@ -110,6 +121,8 @@ services:
   node-exporter:
     image: prom/node-exporter:latest
     container_name: chatops-node-exporter
+    profiles:
+      - monitoring
 
     restart: unless-stopped
 
