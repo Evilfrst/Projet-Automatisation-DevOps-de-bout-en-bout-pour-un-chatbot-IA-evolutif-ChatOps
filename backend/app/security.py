@@ -104,3 +104,17 @@ def get_current_user(
 
     finally:
         db.close()
+
+def require_roles(*allowed_roles: str):
+    def role_checker(
+        current_user: User = Depends(get_current_user)
+    ):
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=403,
+                detail="Accès refusé : rôle insuffisant"
+            )
+
+        return current_user
+
+    return role_checker
