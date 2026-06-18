@@ -7,7 +7,6 @@ description,
 severity="P3"
 ):
 
-```
 db = SessionLocal()
 
 try:
@@ -41,11 +40,9 @@ except Exception as e:
 finally:
 
     db.close()
-```
 
 def get_incidents():
 
-```
 db = SessionLocal()
 
 try:
@@ -67,4 +64,3 @@ try:
 finally:
 
     db.close()
-```
