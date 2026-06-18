@@ -12,7 +12,7 @@ from .security import (
     get_current_user,
     require_roles
 )
-from .models import User, Conversation, AuditLog, Base
+from .models import User, Conversation, AuditLog, Incident, Base
 from .audit_service import save_audit_log
 
 from .database import SessionLocal, engine
@@ -229,6 +229,36 @@ TOOLS = [
 ]
 
 # ==================================================
+# REQUEST MODEL
+# ==================================================
+class RoleUpdateRequest(BaseModel):
+    role: str
+    
+class ChatRequest(BaseModel):
+    prompt: str
+    
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class IncidentCreateRequest(BaseModel):
+    title: str
+    description: str | None = None
+    severity: str = "P3"
+
+
+class IncidentUpdateRequest(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    severity: str | None = None
+    status: str | None = None
+
+# ==================================================
 # INCIDENT
 # ==================================================
 @app.post("/incidents")
@@ -360,35 +390,6 @@ def delete_incident(
 
 
 
-# ==================================================
-# REQUEST MODEL
-# ==================================================
-class RoleUpdateRequest(BaseModel):
-    role: str
-    
-class ChatRequest(BaseModel):
-    prompt: str
-    
-class RegisterRequest(BaseModel):
-    username: str
-    email: str
-    password: str
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-class IncidentCreateRequest(BaseModel):
-    title: str
-    description: str | None = None
-    severity: str = "P3"
-
-
-class IncidentUpdateRequest(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    severity: str | None = None
-    status: str | None = None
 
 # ==================================================
 # REGISTER
@@ -495,7 +496,8 @@ def execute_function(
     )
 
     arguments = arguments or {}
-        devops_tools = {
+
+    devops_tools = {
         "list_pods",
         "list_deployments",
         "list_services",
