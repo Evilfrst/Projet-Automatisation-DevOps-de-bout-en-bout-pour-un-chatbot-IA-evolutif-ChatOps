@@ -12,6 +12,9 @@ services:
 
     environment:
       DATABASE_URL: postgresql://chatops:chatops123@postgres:5432/chatops
+      KUBECONFIG: /root/.kube/config
+    volumes:
+      - /home/ubuntu/.kube/config-docker:/root/.kube/config:ro 
 
     depends_on:
       - postgres
