@@ -11,7 +11,6 @@ from .security import (
     create_access_token,
     get_current_user,
     require_roles
-)r
 )
 from .models import User, Conversation, AuditLog, Base
 from .audit_service import save_audit_log
@@ -33,6 +32,7 @@ from .prometheus_service import (
     memory_usage,
     pod_count
 )
+
 
 import os
 import json
@@ -232,6 +232,9 @@ TOOLS = [
 # ==================================================
 # REQUEST MODEL
 # ==================================================
+class RoleUpdateRequest(BaseModel):
+    role: str
+    
 class ChatRequest(BaseModel):
     prompt: str
     
@@ -239,7 +242,6 @@ class RegisterRequest(BaseModel):
     username: str
     email: str
     password: str
-
 
 class LoginRequest(BaseModel):
     username: str
@@ -413,8 +415,9 @@ def execute_function(
 # ==================================================
 
 @app.get("/audit")
-def get_audit_logs():
-
+def get_audit_logs(
+    current_user: User = Depends(require_roles("admin"))
+):
     db = SessionLocal()
 
     try:
@@ -696,22 +699,29 @@ def get_conversation(conversation_id: int):
 # ==================================================
 
 @app.get("/k8s/pods")
-def get_pods():
+def get_pods(
+    current_user: User = Depends(require_roles("devops", "admin"))
+):
     return list_pods()
 
 
 @app.get("/k8s/deployments")
-def get_deployments():
+def get_deployments(
+    current_user: User = Depends(require_roles("devops", "admin"))
+):
     return list_deployments()
 
 
 @app.get("/k8s/services")
-def get_services():
+def get_services(
+    current_user: User = Depends(require_roles("devops", "admin"))
+):
     return list_services()
 
-
 @app.get("/k8s/failed-pods")
-def get_failed_pods():
+def get_failed_pods(
+    current_user: User = Depends(require_roles("devops", "admin"))
+):
     return failed_pods()
 
 
@@ -737,24 +747,18 @@ def kubernetes_health():
 @app.get("/k8s/logs")
 def get_logs(
     namespace: str,
-    pod_name: str
+    pod_name: str,
+    current_user: User = Depends(require_roles("devops", "admin"))
 ):
-
-    return pod_logs(
-        namespace,
-        pod_name
-    )
+    return pod_logs(namespace, pod_name)
 
 @app.post("/k8s/restart")
 def restart(
     namespace: str,
-    deployment_name: str
+    deployment_name: str,
+    current_user: User = Depends(require_roles("admin"))
 ):
-
-    return restart_deployment(
-        namespace,
-        deployment_name
-    )
+    return restart_deployment(namespace, deployment_name)
 # ==================================================
 # MONITORING
 # ==================================================
@@ -768,6 +772,57 @@ def monitoring_metrics():
         "memory": memory_usage(),
         "pods": pod_count()
     }
+
+# ==================================================
+# USERS
+# ==================================================
+
+@app.patch("/admin/users/{user_id}/role")
+def update_user_role(
+    user_id: int,
+    data: RoleUpdateRequest,
+    current_user: User = Depends(require_roles("admin"))
+):
+    allowed_roles = ["viewer", "devops", "admin"]
+
+    if data.role not in allowed_roles:
+        raise HTTPException(
+            status_code=400,
+            detail="Rôle invalide"
+        )
+
+    db = SessionLocal()
+
+    try:
+        user = (
+            db.query(User)
+            .filter(User.id == user_id)
+            .first()
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="Utilisateur introuvable"
+            )
+
+        user.role = data.role
+        db.commit()
+
+        save_audit_log(
+            username=current_user.username,
+            action="update_user_role",
+            target=f"user_id={user_id}, role={data.role}"
+        )
+
+        return {
+            "message": "Rôle mis à jour",
+            "user_id": user.id,
+            "role": user.role
+        }
+
+    finally:
+        db.close()
 
 
 # ==================================================
