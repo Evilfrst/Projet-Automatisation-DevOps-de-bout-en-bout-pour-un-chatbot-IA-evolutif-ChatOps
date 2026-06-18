@@ -158,7 +158,7 @@ export default function Home() {
               `Bearer ${token}`,
           },
           body: JSON.stringify({
-            prompt: currentInput,
+            prompt: message,
           }),
         }
       )
