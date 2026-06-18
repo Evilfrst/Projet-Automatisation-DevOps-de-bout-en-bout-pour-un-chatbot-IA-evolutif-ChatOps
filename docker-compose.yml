@@ -1,7 +1,9 @@
 services:
 
-  backend:
-    build: ./backend
+ backend:
+  build:
+    context: ./backend
+    dockerfile: dockerfile
     container_name: chatops-backend
 
     ports:
@@ -20,14 +22,16 @@ services:
       - postgres
 
   frontend:
-    build: ./frontend
+  build:
+    context: ./frontend
+    dockerfile: dockerfile
     container_name: chatops-frontend
 
-    ports:
-      - "3000:3000"
+  ports:
+    - "3000:3000"
 
-    depends_on:
-      - backend
+  depends_on:
+    - backend
 
   postgres:
     image: postgres:16
