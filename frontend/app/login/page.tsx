@@ -41,7 +41,12 @@ export default function LoginPage() {
       router.push('/')
     } catch (error) {
       console.error(error)
-      alert(error?.message || 'Erreur serveur')
+
+      if (error instanceof Error) {
+        alert(error.message)
+      } else {
+        alert('Erreur serveur')
+      }
     }
   }
 
