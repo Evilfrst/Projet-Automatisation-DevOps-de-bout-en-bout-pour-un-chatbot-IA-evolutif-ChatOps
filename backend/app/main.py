@@ -228,6 +228,137 @@ TOOLS = [
 }
 ]
 
+# ==================================================
+# INCIDENT
+# ==================================================
+@app.post("/incidents")
+def create_incident(
+    data: IncidentCreateRequest,
+    current_user: User = Depends(require_roles("devops", "admin"))
+):
+    db = SessionLocal()
+
+    try:
+        incident = Incident(
+            title=data.title,
+            description=data.description,
+            severity=data.severity,
+            status="OPEN"
+        )
+
+        db.add(incident)
+        db.commit()
+        db.refresh(incident)
+
+        save_audit_log(
+            username=current_user.username,
+            action="create_incident",
+            target=incident.title
+        )
+
+        return incident_to_dict(incident)
+
+    finally:
+        db.close()
+
+@app.get("/incidents")
+def list_incidents(
+    current_user: User = Depends(get_current_user)
+):
+    db = SessionLocal()
+
+    try:
+        incidents = (
+            db.query(Incident)
+            .order_by(Incident.id.desc())
+            .all()
+        )
+
+        return [
+            incident_to_dict(incident)
+            for incident in incidents
+        ]
+
+    finally:
+        db.close()
+
+@app.patch("/incidents/{incident_id}")
+def update_incident(
+    incident_id: int,
+    data: IncidentUpdateRequest,
+    current_user: User = Depends(require_roles("devops", "admin"))
+):
+    db = SessionLocal()
+
+    try:
+        incident = (
+            db.query(Incident)
+            .filter(Incident.id == incident_id)
+            .first()
+        )
+
+        if not incident:
+            raise HTTPException(
+                status_code=404,
+                detail="Incident introuvable"
+            )
+
+        updates = data.dict(exclude_unset=True)
+
+        for key, value in updates.items():
+            setattr(incident, key, value)
+
+        db.commit()
+        db.refresh(incident)
+
+        save_audit_log(
+            username=current_user.username,
+            action="update_incident",
+            target=f"incident_id={incident_id}"
+        )
+
+        return incident_to_dict(incident)
+
+    finally:
+        db.close()
+
+@app.delete("/incidents/{incident_id}")
+def delete_incident(
+    incident_id: int,
+    current_user: User = Depends(require_roles("admin"))
+):
+    db = SessionLocal()
+
+    try:
+        incident = (
+            db.query(Incident)
+            .filter(Incident.id == incident_id)
+            .first()
+        )
+
+        if not incident:
+            raise HTTPException(
+                status_code=404,
+                detail="Incident introuvable"
+            )
+
+        db.delete(incident)
+        db.commit()
+
+        save_audit_log(
+            username=current_user.username,
+            action="delete_incident",
+            target=f"incident_id={incident_id}"
+        )
+
+        return {
+            "message": "Incident supprimé"
+        }
+
+    finally:
+        db.close()
+
+
 
 # ==================================================
 # REQUEST MODEL
@@ -246,6 +377,18 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+class IncidentCreateRequest(BaseModel):
+    title: str
+    description: str | None = None
+    severity: str = "P3"
+
+
+class IncidentUpdateRequest(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    severity: str | None = None
+    status: str | None = None
 
 # ==================================================
 # REGISTER
@@ -408,6 +551,16 @@ def execute_function(
 
     return {
         "error": "Function not found"
+    }
+    
+def incident_to_dict(incident: Incident):
+    return {
+        "id": incident.id,
+        "title": incident.title,
+        "description": incident.description,
+        "severity": incident.severity,
+        "status": incident.status,
+        "created_at": incident.created_at
     }
 
 # ==================================================
