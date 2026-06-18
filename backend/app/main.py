@@ -9,13 +9,14 @@ from fastapi import Depends
 from .auth import hash_password, verify_password
 from .security import (
     create_access_token,
-    get_current_user
+    get_current_user,
+    require_roles
+)r
 )
-from .models import User
+from .models import User, Conversation, AuditLog, Base
 from .audit_service import save_audit_log
 
 from .database import SessionLocal, engine
-from .models import Conversation, Base
 
 from .kubernetes_service import (
     list_pods,
@@ -338,8 +339,10 @@ def login(data: LoginRequest):
 def execute_function(
     function_name,
     arguments=None,
-    username="system"
+    current_user: User = None
 ):
+    username = current_user.username if current_user else "system"
+    role = current_user.role if current_user else "viewer"
 
     save_audit_log(
         username=username,
@@ -347,6 +350,30 @@ def execute_function(
     )
 
     arguments = arguments or {}
+        devops_tools = {
+        "list_pods",
+        "list_deployments",
+        "list_services",
+        "failed_pods",
+        "pod_logs",
+        "cluster_health"
+    }
+
+    admin_tools = {
+        "restart_deployment"
+    }
+
+    if function_name in devops_tools and role not in ["devops", "admin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Accès refusé : rôle devops ou admin requis"
+        )
+
+    if function_name in admin_tools and role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Accès refusé : rôle admin requis"
+        )
 
     if function_name == "list_pods":
         return list_pods()
@@ -445,7 +472,8 @@ async def health():
 
 @app.post("/chat")
 async def chat(
-    data: ChatRequest
+    data: ChatRequest,
+    current_user: User = Depends(get_current_user)
 ):
 
     db = SessionLocal()
@@ -495,7 +523,8 @@ async def chat(
 
             tool_result = execute_function(
                 function_name,
-                arguments
+                arguments,
+                current_user=current_user
             )
 
             final_response = client.chat.completions.create(
@@ -542,7 +571,7 @@ async def chat(
         try:
 
             conversation = Conversation(
-                user_id=1,
+                 user_id=current_user.id,
                 user_message=data.prompt,
                 ai_response=answer
             )
