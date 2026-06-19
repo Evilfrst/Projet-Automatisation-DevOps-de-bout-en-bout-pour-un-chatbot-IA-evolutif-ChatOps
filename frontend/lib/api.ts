@@ -1,6 +1,19 @@
-export const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-).replace(/\/$/, '')
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim()
+
+export function getApiUrl(): string {
+  if (configuredApiUrl) {
+    return configuredApiUrl.replace(/\/$/, '')
+  }
+
+  // Reprend le comportement qui fonctionnait dans le deuxième ZIP :
+  // sur AWS, le frontend 35.181.183.50:3000 appelle automatiquement
+  // le backend 35.181.183.50:8000, sans figer l'adresse IP dans le code.
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:8000`
+  }
+
+  return 'http://localhost:8000'
+}
 
 export async function apiFetch(
   path: string,
@@ -20,7 +33,7 @@ export async function apiFetch(
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${getApiUrl()}${path}`, {
     ...init,
     headers,
   })
@@ -28,7 +41,11 @@ export async function apiFetch(
   if (response.status === 401 && typeof window !== 'undefined') {
     localStorage.removeItem('token')
     localStorage.removeItem('role')
-    window.location.href = '/login'
+    localStorage.removeItem('username')
+
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login'
+    }
   }
 
   return response
