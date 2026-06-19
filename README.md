@@ -1,3 +1,7 @@
+<img width="1254" height="1254" alt="ChatGPT Image 31 mai 2026, 14_34_50" src="https://github.com/user-attachments/assets/02efea0b-2fa6-449e-9a78-538d157ef2ee" />
+
+# 🚀 ChatOps AI — DevSecOps Automation Platform
+
 <img width="1536" height="1024" alt="ChatGPT Image 9 juin 2026, 10_11_43" src="https://github.com/user-attachments/assets/e865da81-136c-4483-afff-2397a589a15d" />
 
 
@@ -291,3 +295,5 @@ Journalisation centralisée
 Projet réalisé dans le cadre d'un projet DevOps complet démontrant l'automatisation d'une plateforme IA moderne.
 
 ChatOps AI Enterprise
+
+
