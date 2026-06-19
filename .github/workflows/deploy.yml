@@ -18,16 +18,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Copy files to EC2
+      - name: Create deployment archive
+        run: |
+          tar \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='frontend/node_modules' \
+            --exclude='frontend/.next' \
+            --exclude='backend/__pycache__' \
+            --exclude='.env' \
+            --exclude='*.log' \
+            -czf chatops-deploy.tar.gz .
+
+      - name: Copy archive to EC2
         uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
-          source: "."
-          target: "/home/ubuntu/chatops"
-          overwrite: true
+          source: "chatops-deploy.tar.gz"
+          target: "/home/ubuntu"
           command_timeout: 15m
+          overwrite: true
 
       - name: Configure and deploy on EC2
         uses: appleboy/ssh-action@v1
@@ -39,6 +51,26 @@ jobs:
 
           script: |
             set -e
+
+            echo "=== Préparation du dossier ==="
+
+            mkdir -p /home/ubuntu/chatops
+
+            # Corrige les anciennes permissions problématiques
+            sudo chown -R ubuntu:ubuntu /home/ubuntu/chatops
+
+            # Supprime l'ancien contenu sans toucher au dossier lui-même
+            find /home/ubuntu/chatops \
+              -mindepth 1 \
+              -maxdepth 1 \
+              -exec rm -rf {} +
+
+            echo "=== Extraction du nouveau projet ==="
+
+            tar -xzf /home/ubuntu/chatops-deploy.tar.gz \
+              -C /home/ubuntu/chatops
+
+            rm -f /home/ubuntu/chatops-deploy.tar.gz
 
             cd /home/ubuntu/chatops
 
@@ -59,7 +91,7 @@ jobs:
             FRONTEND_PORT=3000
             EOF
 
-            echo "=== Vérification des variables ==="
+            echo "=== Vérification des secrets ==="
 
             if grep -q '^JWT_SECRET=$' .env; then
               echo "Erreur : JWT_SECRET est vide."
@@ -76,27 +108,15 @@ jobs:
             if grep -nE \
               'applied-caas|internal\.api\.openai\.org' \
               frontend/package-lock.json; then
-
-              echo "ERREUR : le package-lock.json contient encore une URL interne."
+              echo "Erreur : une URL npm interne existe encore."
               exit 1
             fi
-
-            echo "Registre npm configuré dans le lockfile :"
-
-            grep -m 3 '"resolved"' frontend/package-lock.json || true
-
-            echo "=== Test du registre npm depuis Docker ==="
-
-            timeout 60 docker run --rm node:20-alpine \
-              npm ping \
-              --registry=https://registry.npmjs.org/ \
-              --fetch-timeout=30000
 
             echo "=== Arrêt des anciens conteneurs ==="
 
             docker compose down --remove-orphans
 
-            echo "=== Reconstruction du frontend sans ancien cache ==="
+            echo "=== Construction du frontend ==="
 
             docker compose --progress plain build --no-cache frontend
 
