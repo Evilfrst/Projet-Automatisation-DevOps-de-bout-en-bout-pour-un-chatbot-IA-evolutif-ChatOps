@@ -5,128 +5,33 @@ on:
     branches:
       - main
 
-concurrency:
-  group: chatops-production
-  cancel-in-progress: false
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create deployment archive
-        run: |
-          git archive \
-            --format=tar.gz \
-            --output=chatops-deploy.tar.gz \
-            HEAD
-          ls -lh chatops-deploy.tar.gz
-      - name: Copy archive to EC2
-        uses: appleboy/scp-action@v1
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
-          source: "chatops-deploy.tar.gz"
-          target: "/home/ubuntu"
-          command_timeout: 15m
-          overwrite: true
+          source: "."
+          target: "/home/ubuntu/chatops"
 
-      - name: Configure and deploy on EC2
-        uses: appleboy/ssh-action@v1
+      - name: Execute remote commands
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
-          command_timeout: 45m
-
           script: |
-            set -e
-
-            echo "=== Préparation du dossier ==="
-
-            mkdir -p /home/ubuntu/chatops
-
-            # Corrige les anciennes permissions problématiques
-            sudo chown -R ubuntu:ubuntu /home/ubuntu/chatops
-
-            # Supprime l'ancien contenu sans toucher au dossier lui-même
-            find /home/ubuntu/chatops \
-              -mindepth 1 \
-              -maxdepth 1 \
-              -exec rm -rf {} +
-
-            echo "=== Extraction du nouveau projet ==="
-
-            tar -xzf /home/ubuntu/chatops-deploy.tar.gz \
-              -C /home/ubuntu/chatops
-
-            rm -f /home/ubuntu/chatops-deploy.tar.gz
-
             cd /home/ubuntu/chatops
-
-            echo "=== Création du fichier .env ==="
-
-            cat > .env <<'EOF'
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            OPENAI_MODEL=gpt-4o-mini
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            ENVIRONMENT=production
-            POSTGRES_DB=chatops
-            POSTGRES_USER=chatops
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            NEXT_PUBLIC_API_URL=http://${{ secrets.HOST }}:8000
-            CORS_ORIGINS=http://${{ secrets.HOST }}:3000
-            BIND_ADDRESS=0.0.0.0
-            BACKEND_PORT=8000
-            FRONTEND_PORT=3000
-            EOF
-
-            echo "=== Vérification des secrets ==="
-
-            if grep -q '^JWT_SECRET=$' .env; then
-              echo "Erreur : JWT_SECRET est vide."
-              exit 1
-            fi
-
-            if grep -q '^POSTGRES_PASSWORD=$' .env; then
-              echo "Erreur : POSTGRES_PASSWORD est vide."
-              exit 1
-            fi
-
-            echo "=== Vérification du package-lock.json ==="
-
-            if grep -nE \
-              'applied-caas|internal\.api\.openai\.org' \
-              frontend/package-lock.json; then
-              echo "Erreur : une URL npm interne existe encore."
-              exit 1
-            fi
-
-            echo "=== Arrêt des anciens conteneurs ==="
-
-            docker compose down --remove-orphans
-
-            echo "=== Construction du frontend ==="
-
-            docker compose --progress plain build --no-cache frontend
-
-            echo "=== Construction du backend ==="
-
-            docker compose --progress plain build backend
-
-            echo "=== Démarrage des conteneurs ==="
-
-            docker compose up -d
-
-            echo "=== État des conteneurs ==="
-
-            docker compose ps
-
-            echo "=== Logs récents ==="
-
-            docker compose logs --tail=50
+            docker compose down
+            docker compose up -d --build
