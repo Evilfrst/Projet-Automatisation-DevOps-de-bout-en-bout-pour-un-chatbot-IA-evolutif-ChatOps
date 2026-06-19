@@ -24,6 +24,7 @@ from .kubernetes_service import (
     restart_deployment,
 )
 from .models import AuditLog, Base, Conversation, Incident, User
+from .migrations import migrate_legacy_schema
 from .prometheus_service import (
     cluster_health,
     cpu_usage,
@@ -50,6 +51,7 @@ app = FastAPI(
 
 # create_all garde le démarrage local simple. Alembic gère les évolutions de schéma.
 Base.metadata.create_all(bind=engine)
+migrate_legacy_schema(engine)
 
 conversations_saved_total = Counter(
     "conversations_saved_total", "Total conversations saved"
@@ -58,7 +60,7 @@ database_errors_total = Counter("database_errors_total", "Total database errors"
 
 raw_origins = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000",
+    "http://localhost:3000,http://127.0.0.1:3000,http://35.181.183.50:3000",
 )
 allowed_origins = [
     origin.strip() for origin in raw_origins.split(",") if origin.strip()
@@ -345,6 +347,16 @@ def register(data: RegisterRequest):
         db.add(user)
         db.commit()
         db.refresh(user)
+
+        if db.query(User).count() == 1:
+            db.query(Conversation).filter(
+                Conversation.user_id.is_(None)
+            ).update(
+                {Conversation.user_id: user.id},
+                synchronize_session=False,
+            )
+            db.commit()
+
         return {"message": "Utilisateur créé", "user_id": user.id}
     except IntegrityError:
         db.rollback()
@@ -405,7 +417,7 @@ async def chat(
         )
 
         response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=OPENAI_MODEL,
             messages=[
                 {
                     "role": "user",
@@ -435,7 +447,7 @@ async def chat(
 
             final_response = (
                 openai_client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model=OPENAI_MODEL,
                     messages=[
                         {
                             "role": "user",
