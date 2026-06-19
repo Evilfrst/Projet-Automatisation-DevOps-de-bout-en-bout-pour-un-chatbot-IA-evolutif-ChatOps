@@ -20,18 +20,11 @@ jobs:
 
       - name: Create deployment archive
         run: |
-          tar \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='frontend/node_modules' \
-            --exclude='frontend/.next' \
-            --exclude='backend/__pycache__' \
-            --exclude='.env' \
-            --exclude='*.log' \
-            -czf chatops-deploy.tar.gz .
-            
-          mv /tmp/chatops-deploy.tar.gz ./chatops-deploy.tar.gz
-
+          git archive \
+            --format=tar.gz \
+            --output=chatops-deploy.tar.gz \
+            HEAD
+          ls -lh chatops-deploy.tar.gz
       - name: Copy archive to EC2
         uses: appleboy/scp-action@v1
         with:
