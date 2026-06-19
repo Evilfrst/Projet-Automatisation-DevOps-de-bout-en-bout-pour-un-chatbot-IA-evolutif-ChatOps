@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -23,56 +23,44 @@ def test_health():
     assert response.json()["status"] == "healthy"
 
 
-def test_chat():
+@patch("backend.app.main.client.chat.completions.create")
+def test_chat(mock_create):
+
     def fake_current_user():
         return SimpleNamespace(
             id=1,
             username="test_user",
-            role="admin",
+            role="admin"
         )
-
-    mocked_message = SimpleNamespace(
-        content="Bonjour depuis le mock",
-        tool_calls=None,
-    )
-
-    mocked_response = SimpleNamespace(
-        choices=[
-            SimpleNamespace(
-                message=mocked_message,
-            )
-        ]
-    )
-
-    mocked_openai_client = MagicMock()
-
-    mocked_openai_client.chat.completions.create.return_value = (
-        mocked_response
-    )
-
-    def fake_openai_client():
-        return mocked_openai_client
 
     main.app.dependency_overrides[
         main.get_current_user
     ] = fake_current_user
 
-    main.app.dependency_overrides[
-        main.get_openai_client
-    ] = fake_openai_client
+    mock_create.return_value.choices = [
+        type(
+            "obj",
+            (object,),
+            {
+                "message": type(
+                    "obj",
+                    (object,),
+                    {
+                        "content": "Bonjour depuis le mock"
+                    }
+                )()
+            }
+        )()
+    ]
 
     try:
         response = client.post(
             "/chat",
-            json={"prompt": "hello"},
+            json={"prompt": "hello"}
         )
 
         assert response.status_code == 200
-        assert response.json() == {
-            "response": "Bonjour depuis le mock"
-        }
-
-        mocked_openai_client.chat.completions.create.assert_called_once()
+        assert response.json()["response"] == "Bonjour depuis le mock"
 
     finally:
         main.app.dependency_overrides.clear()
