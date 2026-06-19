@@ -29,6 +29,8 @@ jobs:
             --exclude='.env' \
             --exclude='*.log' \
             -czf chatops-deploy.tar.gz .
+            
+          mv /tmp/chatops-deploy.tar.gz ./chatops-deploy.tar.gz
 
       - name: Copy archive to EC2
         uses: appleboy/scp-action@v1
