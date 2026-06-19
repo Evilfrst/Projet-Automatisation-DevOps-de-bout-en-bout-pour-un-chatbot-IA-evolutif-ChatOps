@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from typing import Literal
-
+from functools import lru_cache
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -194,7 +194,17 @@ def incident_to_dict(incident: Incident) -> dict:
         "status": incident.status,
         "created_at": incident.created_at,
     }
+    
+def get_openai_client() -> OpenAI:
+    api_key = os.getenv("OPENAI_API_KEY")
 
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="OPENAI_API_KEY not configured",
+        )
+
+    return OpenAI(api_key=api_key)
 
 def execute_function(
     function_name: str,
@@ -384,105 +394,123 @@ def me(current_user: User = Depends(get_current_user)):
 async def chat(
     data: ChatRequest,
     current_user: User = Depends(get_current_user),
+    openai_client: OpenAI = Depends(get_openai_client),
 ):
-    if not openai_client:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="OPENAI_API_KEY non configurée",
-        )
-
-    prompt = data.prompt.strip()
-    logger.info("Prompt reçu de %s", current_user.username)
+    db = SessionLocal()
 
     try:
+        logger.info(
+            "Prompt reçu par l'utilisateur ID=%s",
+            current_user.id,
+        )
+
         response = openai_client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[{"role": "user", "content": prompt}],
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": data.prompt,
+                }
+            ],
             tools=TOOLS,
             tool_choice="auto",
         )
+
         message = response.choices[0].message
-        tool_calls = getattr(message, "tool_calls", None) or []
+        tool_calls = getattr(message, "tool_calls", None)
 
         if tool_calls:
-            tool_messages = []
-            for tool_call in tool_calls:
-                try:
-                    arguments = json.loads(tool_call.function.arguments or "{}")
-                except json.JSONDecodeError:
-                    arguments = {}
+            tool_call = tool_calls[0]
 
-                result = execute_function(
-                    tool_call.function.name,
-                    arguments,
-                    current_user=current_user,
-                )
-                tool_messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": json.dumps(result, ensure_ascii=False, default=str),
-                    }
-                )
+            function_name = tool_call.function.name
+            arguments = json.loads(
+                tool_call.function.arguments
+            )
 
-            assistant_message = (
-                message.model_dump(exclude_none=True)
-                if hasattr(message, "model_dump")
-                else {"role": "assistant", "content": message.content or ""}
+            tool_result = execute_function(
+                function_name,
+                arguments,
+                current_user=current_user,
             )
-            final_response = openai_client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=[
-                    {"role": "user", "content": prompt},
-                    assistant_message,
-                    *tool_messages,
-                ],
+
+            final_response = (
+                openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": data.prompt,
+                        },
+                        (
+                            message.model_dump()
+                            if hasattr(message, "model_dump")
+                            else {
+                                "role": "assistant",
+                                "content": getattr(
+                                    message,
+                                    "content",
+                                    "",
+                                ),
+                            }
+                        ),
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(tool_result),
+                        },
+                    ],
+                )
             )
-            answer = final_response.choices[0].message.content
+
+            answer = getattr(
+                final_response.choices[0].message,
+                "content",
+                "Aucune réponse générée",
+            )
+
         else:
-            answer = message.content
+            answer = getattr(
+                message,
+                "content",
+                "Aucune réponse générée",
+            )
 
-        answer = answer or "Aucune réponse générée"
+        try:
+            conversation = Conversation(
+                user_id=current_user.id,
+                user_message=data.prompt,
+                ai_response=answer,
+            )
+
+            db.add(conversation)
+            db.commit()
+
+            conversations_saved_total.inc()
+
+        except Exception as db_error:
+            db.rollback()
+            database_errors_total.inc()
+
+            logger.warning(
+                "Impossible de sauvegarder la conversation : %s",
+                db_error,
+            )
+
+        return {"response": answer}
+
     except HTTPException:
         raise
-    except Exception as exc:
-        logger.exception("Erreur du service IA")
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Service IA indisponible : {exc}",
-        ) from exc
 
-    db = SessionLocal()
-    try:
-        conversation = Conversation(
-            user_id=current_user.id,
-            user_message=prompt,
-            ai_response=answer,
-        )
-        db.add(conversation)
-        db.commit()
-        db.refresh(conversation)
-        conversations_saved_total.inc()
-    except Exception as exc:
-        db.rollback()
-        database_errors_total.inc()
-        logger.exception("La conversation n'a pas pu être sauvegardée")
+    except Exception:
+        logger.exception("Erreur OpenAI")
+
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=(
-                "Réponse générée, mais sauvegarde de l'historique impossible. "
-                "Exécutez les migrations Alembic."
-            ),
-        ) from exc
+            status_code=503,
+            detail="AI service unavailable",
+        )
+
     finally:
         db.close()
-
-    return {
-        "response": answer,
-        "conversation_id": conversation.id,
-        "saved": True,
-    }
-
 
 @app.get("/history")
 def get_history(current_user: User = Depends(get_current_user)):
