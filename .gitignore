@@ -11,6 +11,17 @@
 # Python
 __pycache__/
 *.pyc
+.pytest_cache/
+*.db
 
-# Node
+# Node / Next.js
 node_modules/
+.next/
+out/
+coverage/
+
+# Logs and editors
+*.log
+.DS_Store
+.vscode/
+.idea/
