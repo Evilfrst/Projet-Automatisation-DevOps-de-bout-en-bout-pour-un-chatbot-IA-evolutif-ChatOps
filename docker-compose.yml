@@ -7,12 +7,15 @@ services:
       dockerfile: dockerfile
     container_name: chatops-backend
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-chatops}:${POSTGRES_PASSWORD:-change-me-local}@postgres:5432/${POSTGRES_DB:-chatops}
       PROMETHEUS_URL: http://prometheus:9090
       KUBECONFIG: /root/.kube/config
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      JWT_SECRET: ${JWT_SECRET:-development-only-change-me}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://35.181.183.50:3000}
     ports:
       - "${BIND_ADDRESS:-0.0.0.0}:${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -29,7 +32,7 @@ services:
       context: ./frontend
       dockerfile: dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
     container_name: chatops-frontend
     restart: unless-stopped
     ports:
@@ -60,7 +63,7 @@ services:
     restart: unless-stopped
     profiles: ["https"]
     environment:
-      APP_DOMAIN: ${APP_DOMAIN}
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
     ports:
       - "80:80"
       - "443:443"
