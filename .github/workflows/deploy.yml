@@ -12,28 +12,31 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Copy files to EC2
-        uses: appleboy/scp-action@v1.0.0
+        uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           source: "."
           target: "/home/ubuntu/chatops"
+          overwrite: true
+          command_timeout: 15m
 
       - name: Configure and deploy on EC2
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
-          command_timeout: 30m
+          command_timeout: 45m
+
           script: |
             set -e
 
@@ -56,25 +59,50 @@ jobs:
             FRONTEND_PORT=3000
             EOF
 
-            echo "=== Vérification des variables obligatoires ==="
+            echo "=== Vérification des variables ==="
 
             if grep -q '^JWT_SECRET=$' .env; then
-              echo "Erreur : le secret JWT_SECRET est vide."
+              echo "Erreur : JWT_SECRET est vide."
               exit 1
             fi
 
             if grep -q '^POSTGRES_PASSWORD=$' .env; then
-              echo "Erreur : le secret POSTGRES_PASSWORD est vide."
+              echo "Erreur : POSTGRES_PASSWORD est vide."
               exit 1
             fi
+
+            echo "=== Vérification du package-lock.json ==="
+
+            if grep -nE \
+              'applied-caas|internal\.api\.openai\.org' \
+              frontend/package-lock.json; then
+
+              echo "ERREUR : le package-lock.json contient encore une URL interne."
+              exit 1
+            fi
+
+            echo "Registre npm configuré dans le lockfile :"
+
+            grep -m 3 '"resolved"' frontend/package-lock.json || true
+
+            echo "=== Test du registre npm depuis Docker ==="
+
+            timeout 60 docker run --rm node:20-alpine \
+              npm ping \
+              --registry=https://registry.npmjs.org/ \
+              --fetch-timeout=30000
 
             echo "=== Arrêt des anciens conteneurs ==="
 
             docker compose down --remove-orphans
 
-            echo "=== Construction des images Docker ==="
+            echo "=== Reconstruction du frontend sans ancien cache ==="
 
-            docker compose build --progress=plain
+            docker compose --progress plain build --no-cache frontend
+
+            echo "=== Construction du backend ==="
+
+            docker compose --progress plain build backend
 
             echo "=== Démarrage des conteneurs ==="
 
@@ -83,3 +111,7 @@ jobs:
             echo "=== État des conteneurs ==="
 
             docker compose ps
+
+            echo "=== Logs récents ==="
+
+            docker compose logs --tail=50
