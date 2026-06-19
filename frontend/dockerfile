@@ -2,27 +2,9 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package*.json ./
 
-ENV NODE_OPTIONS=--dns-result-order=ipv4first \
-    NPM_CONFIG_REGISTRY=https://registry.npmjs.org/ \
-    NPM_CONFIG_FETCH_RETRIES=2 \
-    NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=5000 \
-    NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=15000 \
-    NPM_CONFIG_FETCH_TIMEOUT=30000 \
-    NPM_CONFIG_UPDATE_NOTIFIER=false
-
-RUN npm config delete proxy \
-    && npm config delete https-proxy \
-    && echo "=== Test du registre npm ===" \
-    && npm ping --loglevel verbose \
-    && echo "=== Installation des dépendances ===" \
-    && npm ci \
-        --no-audit \
-        --no-fund \
-        --loglevel verbose \
-        --foreground-scripts
-
+RUN npm install --no-audit --no-fund
 
 FROM node:20-alpine AS builder
 
@@ -31,8 +13,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
