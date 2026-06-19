@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
-import { apiFetch, readApiError } from '@/lib/api'
+import { apiFetch, readApiError } from '../lib/api'
 
 type Message = {
   role: 'user' | 'assistant'
