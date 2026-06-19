@@ -1,163 +1,133 @@
-name: chatops
-
 services:
+
   backend:
     build:
       context: ./backend
       dockerfile: dockerfile
     container_name: chatops-backend
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-chatops}:${POSTGRES_PASSWORD:-change-me-local}@postgres:5432/${POSTGRES_DB:-chatops}
-      PROMETHEUS_URL: http://prometheus:9090
-      KUBECONFIG: /root/.kube/config
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
-      JWT_SECRET: ${JWT_SECRET:-development-only-change-me}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://35.181.183.50:3000}
+
     ports:
-      - "${BIND_ADDRESS:-0.0.0.0}:${BACKEND_PORT:-8000}:8000"
+      - "8000:8000"
+
+    env_file:
+      - .env
+
+    environment:
+      DATABASE_URL: postgresql://chatops:chatops123@postgres:5432/chatops
+      KUBECONFIG: /root/.kube/config
+
+    volumes:
+      - /home/ubuntu/.kube/config-docker:/root/.kube/config:ro
+
     depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
+      - postgres
 
   frontend:
     build:
       context: ./frontend
       dockerfile: dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
     container_name: chatops-frontend
-    restart: unless-stopped
-    ports:
-      - "${BIND_ADDRESS:-0.0.0.0}:${FRONTEND_PORT:-3000}:3000"
-    depends_on:
-      backend:
-        condition: service_healthy
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: chatops-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-chatops}
-      POSTGRES_USER: ${POSTGRES_USER:-chatops}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chatops} -d ${POSTGRES_DB:-chatops}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  caddy:
-    image: caddy:2-alpine
-    container_name: chatops-caddy
-    restart: unless-stopped
-    profiles: ["https"]
-    environment:
-      APP_DOMAIN: ${APP_DOMAIN:-localhost}
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - "3000:3000"
+
     depends_on:
-      - frontend
       - backend
 
-  prometheus:
-    image: prom/prometheus:v2.55.1
-    container_name: chatops-prometheus
-    restart: unless-stopped
-    profiles: ["monitoring"]
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
+  postgres:
+    image: postgres:16
+    container_name: postgres
+
+    restart: always
+
+    environment:
+      POSTGRES_DB: chatops
+      POSTGRES_USER: chatops
+      POSTGRES_PASSWORD: chatops123
+
     ports:
-      - "${BIND_ADDRESS:-0.0.0.0}:9090:9090"
+      - "5432:5432"
+
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
-      - prometheus_data:/prometheus
+      - postgres_data:/var/lib/postgresql/data
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    profiles:
+      - monitoring
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
 
   alertmanager:
-    image: prom/alertmanager:v0.28.1
-    container_name: chatops-alertmanager
-    restart: unless-stopped
-    profiles: ["monitoring"]
+    image: prom/alertmanager
+    container_name: alertmanager
+    profiles:
+      - monitoring
+
     ports:
-      - "${BIND_ADDRESS:-0.0.0.0}:9093:9093"
+      - "9093:9093"
+
     volumes:
-      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
 
   grafana:
-    image: grafana/grafana:11.5.2
-    container_name: chatops-grafana
-    restart: unless-stopped
-    profiles: ["monitoring"]
+    image: grafana/grafana
+    container_name: grafana
+    profiles:
+      - monitoring
+
     ports:
-      - "${BIND_ADDRESS:-0.0.0.0}:3001:3000"
+      - "3001:3000"
+
     environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me-local}
-    volumes:
-      - grafana_data:/var/lib/grafana
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+
     depends_on:
       - prometheus
       - loki
 
   loki:
-    image: grafana/loki:3.4.2
-    container_name: chatops-loki
-    restart: unless-stopped
-    profiles: ["monitoring"]
+    image: grafana/loki:latest
+    container_name: loki
+    profiles:
+      - monitoring
+
+    ports:
+      - "3100:3100"
+
     command: -config.file=/etc/loki/local-config.yaml
-    volumes:
-      - loki_data:/loki
 
   promtail:
-    image: grafana/promtail:3.4.2
-    container_name: chatops-promtail
-    restart: unless-stopped
-    profiles: ["monitoring"]
-    command: -config.file=/etc/promtail/config.yml
+    image: grafana/promtail:latest
+    container_name: promtail
+    profiles:
+      - monitoring
+
     volumes:
-      - ./monitoring/promtail.yml:/etc/promtail/config.yml:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log:/var/log
+
+    command: -config.file=/etc/promtail/config.yml
+
     depends_on:
       - loki
 
   node-exporter:
-    image: prom/node-exporter:v1.9.0
+    image: prom/node-exporter:latest
     container_name: chatops-node-exporter
+    profiles:
+      - monitoring
+
     restart: unless-stopped
-    profiles: ["monitoring"]
-    pid: host
-    command:
-      - --path.procfs=/host/proc
-      - --path.sysfs=/host/sys
-      - --path.rootfs=/rootfs
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro,rslave
+
+    ports:
+      - "9100:9100"
 
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:
-  prometheus_data:
-  grafana_data:
-  loki_data:
