@@ -1,8 +1,10 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
+
+import { apiFetch, readApiError } from '@/lib/api'
 
 type Message = {
   role: 'user' | 'assistant'
@@ -14,206 +16,173 @@ type ConversationHistory = {
   title?: string
   user_message: string
   ai_response: string
+  created_at?: string
 }
 
 type Metrics = {
-  cpu: number
-  ram: number
+  cpu: number | null
+  memory: number | null
   pods: number
+  running_pods: number
+  failed_pods: number
+  open_incidents: number
+  cluster_status: string
+  cluster_error: string | null
   cicd: string
+}
+
+const initialMetrics: Metrics = {
+  cpu: null,
+  memory: null,
+  pods: 0,
+  running_pods: 0,
+  failed_pods: 0,
+  open_incidents: 0,
+  cluster_status: 'unknown',
+  cluster_error: null,
+  cicd: 'not_connected',
 }
 
 export default function Home() {
   const [input, setInput] = useState('')
-
+  const [sending, setSending] = useState(false)
+  const [pageError, setPageError] = useState('')
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Bienvenue sur ChatOps AI Enterprise 🚀',
+      content: 'Bienvenue sur ChatOps AI 🚀',
     },
   ])
-
   const [history, setHistory] = useState<ConversationHistory[]>([])
-
-  const [metrics, setMetrics] = useState<Metrics>({
-    cpu: 0,
-    ram: 0,
-    pods: 0,
-    cicd: 'Loading...',
-  })
-
+  const [metrics, setMetrics] = useState<Metrics>(initialMetrics)
   const router = useRouter()
 
   const logout = () => {
     localStorage.removeItem('token')
-    window.location.href = '/login'
+    localStorage.removeItem('role')
+    router.replace('/login')
   }
 
-  const loadHistory = async () => {
-    const token = localStorage.getItem('token')
-
+  const loadHistory = useCallback(async () => {
     try {
-      const response = await fetch(
-        'http://35.181.183.50:8000/history',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
-
-      if (!response.ok) return
-
-      const data = await response.json()
-
-      setHistory(data)
+      const response = await apiFetch('/history')
+      if (!response.ok) {
+        throw new Error(
+          await readApiError(
+            response,
+            "Impossible de charger l'historique",
+          ),
+        )
+      }
+      setHistory(await response.json())
     } catch (error) {
-      console.error(
-        'Erreur chargement historique :',
-        error
+      console.error('Erreur chargement historique :', error)
+      setPageError(
+        error instanceof Error
+          ? error.message
+          : "Impossible de charger l'historique",
       )
     }
-  }
+  }, [])
 
-  const loadMetrics = async () => {
-    const token = localStorage.getItem('token')
-
+  const loadMetrics = useCallback(async () => {
     try {
-      const response = await fetch(
-        'http://35.181.183.50:8000/monitoring/metrics',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
-
-      if (!response.ok) return
-
+      const response = await apiFetch('/dashboard/summary')
+      if (!response.ok) {
+        throw new Error(
+          await readApiError(
+            response,
+            'Impossible de charger les métriques',
+          ),
+        )
+      }
       const data = await response.json()
-
-      setMetrics({
-        cpu: data.cpu ?? 0,
-        ram: data.ram ?? 0,
-        pods: data.pods ?? 0,
-        cicd: data.cicd ?? 'Unknown',
-      })
+      setMetrics({ ...initialMetrics, ...data })
     } catch (error) {
-      console.error(
-        'Erreur chargement métriques :',
-        error
-      )
+      console.error('Erreur chargement métriques :', error)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    const token =
-      localStorage.getItem('token')
-
+    const token = localStorage.getItem('token')
     if (!token) {
-      router.push('/login')
+      router.replace('/login')
       return
     }
 
-    loadHistory()
-    loadMetrics()
+    const initialLoad = window.setTimeout(() => {
+      void loadHistory()
+      void loadMetrics()
+    }, 0)
 
-    const interval = setInterval(() => {
-      loadMetrics()
-    }, 5000)
+    const interval = window.setInterval(() => {
+      void loadMetrics()
+    }, 15_000)
 
-    return () => clearInterval(interval)
-
-  }, [router])
+    return () => {
+      window.clearTimeout(initialLoad)
+      window.clearInterval(interval)
+    }
+  }, [loadHistory, loadMetrics, router])
 
   const sendMessage = async () => {
-    if (!input.trim()) return
+    const currentInput = input.trim()
+    if (!currentInput || sending) return
 
-    const token =
-      localStorage.getItem('token')
-
-    const userMessage: Message = {
-      role: 'user',
-      content: input,
-    }
-
-    setMessages((prev) => [
-      ...prev,
-      userMessage,
+    setSending(true)
+    setPageError('')
+    setInput('')
+    setMessages((previous) => [
+      ...previous,
+      { role: 'user', content: currentInput },
     ])
 
-    const currentInput = input
-
-    setInput('')
-
     try {
-      const response = await fetch(
-        'http://35.181.183.50:8000/chat',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type':
-              'application/json',
-            Authorization:
-              `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            prompt: message,
-          }),
-        }
-      )
+      const response = await apiFetch('/chat', {
+        method: 'POST',
+        body: JSON.stringify({ prompt: currentInput }),
+      })
 
       if (!response.ok) {
         throw new Error(
-          'Erreur backend'
+          await readApiError(response, 'Erreur du backend'),
         )
       }
 
-      const data =
-        await response.json()
-
+      const data = await response.json()
+      setMessages((previous) => [
+        ...previous,
+        { role: 'assistant', content: data.response },
+      ])
       await loadHistory()
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: data.response,
-        },
-      ])
+      await loadMetrics()
     } catch (error) {
-      console.error(
-        'Erreur API :',
-        error
-      )
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content:
-            'Erreur de connexion au backend ❌',
-        },
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Erreur de connexion au backend'
+      setMessages((previous) => [
+        ...previous,
+        { role: 'assistant', content: `Erreur : ${message}` },
       ])
+      setPageError(message)
+    } finally {
+      setSending(false)
     }
   }
 
+  const formatPercent = (value: number | null) =>
+    value === null ? 'N/D' : `${value.toFixed(1)}%`
+
+  const clusterLabel =
+    metrics.cluster_status === 'healthy'
+      ? 'Disponible'
+      : 'Indisponible'
+
   return (
-    <main
-      className="
-        min-h-screen
-        bg-gradient-to-br
-        from-slate-950
-        via-slate-900
-        to-black
-        text-white
-        p-8
-      "
-    >
-      <div className="max-w-7xl mx-auto">
-
-        <header className="flex items-center justify-between mb-12">
-
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black p-4 text-white md:p-8">
+      <div className="mx-auto max-w-7xl">
+        <header className="mb-10 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Image
               src="/chatops-logo.png"
@@ -222,224 +191,136 @@ export default function Home() {
               height={64}
               priority
             />
-
             <div>
-              <h1 className="text-4xl font-bold tracking-tight">
+              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
                 ChatOps AI
               </h1>
-
               <p className="text-slate-400">
-                Enterprise DevSecOps Platform
+                Assistant DevOps et Kubernetes
               </p>
             </div>
           </div>
 
-          <div className="hidden md:flex gap-3 items-center">
-
-            <span className="px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">
-              AI Powered
+          <div className="flex items-center gap-3">
+            <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-400">
+              MVP évolutif
             </span>
-
-            <span className="px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm">
-              DevSecOps
-            </span>
-
-            <span className="px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
-              Production Ready
-            </span>
-
             <button
               onClick={logout}
-              className="
-                px-4
-                py-2
-                rounded-full
-                bg-red-500/10
-                border
-                border-red-500/20
-                text-red-400
-                text-sm
-                hover:bg-red-500/20
-              "
+              className="rounded-full border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-400 hover:bg-red-500/20"
             >
               Déconnexion
             </button>
-
           </div>
-
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        {pageError && (
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+            {pageError}
+          </div>
+        )}
 
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
           {[
-            ['CPU Usage', `${metrics.cpu}%`],
-            ['RAM Usage', `${metrics.ram}%`],
-            ['Pods Running', `${metrics.pods}`],
-            ['CI/CD', metrics.cicd],
+            ['CPU', formatPercent(metrics.cpu)],
+            ['Mémoire', formatPercent(metrics.memory)],
+            ['Pods', `${metrics.running_pods}/${metrics.pods}`],
+            ['Pods en erreur', `${metrics.failed_pods}`],
+            ['Incidents ouverts', `${metrics.open_incidents}`],
+            ['Cluster', clusterLabel],
           ].map(([title, value]) => (
-
             <div
               key={title}
-              className="
-                bg-slate-900/60
-                backdrop-blur-xl
-                border
-                border-slate-800
-                rounded-3xl
-                p-6
-                shadow-xl
-                shadow-blue-500/5
-              "
+              className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl backdrop-blur-xl"
             >
-              <p className="text-slate-400">
-                {title}
-              </p>
-
-              <h2 className="text-4xl font-bold mt-3">
-                {value}
-              </h2>
+              <p className="text-sm text-slate-400">{title}</p>
+              <h2 className="mt-2 text-2xl font-bold">{value}</h2>
             </div>
           ))}
         </div>
-        <div className="flex gap-6">
-          <div
-            className="
-              w-80
-              bg-slate-900/70
-              backdrop-blur-xl
-              border
-              border-slate-800
-              rounded-3xl
-              p-5
-              h-[650px]
-              overflow-auto
-              shrink-0
-            "
-          >
-            <h2 className="text-xl font-bold mb-4">
-              Historique
-            </h2>
 
+        {metrics.cluster_error && (
+          <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+            Kubernetes indisponible : {metrics.cluster_error}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <aside className="h-[650px] w-full shrink-0 overflow-auto rounded-3xl border border-slate-800 bg-slate-900/70 p-5 backdrop-blur-xl lg:w-80">
+            <h2 className="mb-4 text-xl font-bold">Historique</h2>
             <div className="space-y-2">
+              {history.length === 0 && (
+                <p className="text-sm text-slate-500">
+                  Aucune conversation sauvegardée.
+                </p>
+              )}
               {history.map((item) => (
                 <button
                   key={item.id}
                   onClick={() =>
                     setMessages([
-                      {
-                        role: 'user',
-                        content: item.user_message,
-                      },
+                      { role: 'user', content: item.user_message },
                       {
                         role: 'assistant',
                         content: item.ai_response,
                       },
                     ])
                   }
-                  className="
-                    w-full
-                    text-left
-                    p-3
-                    rounded-xl
-                    bg-slate-800/50
-                    hover:bg-slate-700
-                    transition
-                    text-sm
-                  "
+                  className="w-full rounded-xl bg-slate-800/50 p-3 text-left text-sm transition hover:bg-slate-700"
                 >
-                  {item.title ||
-                    item.user_message.slice(0, 40)}
+                  {item.title || item.user_message.slice(0, 40)}
                 </button>
               ))}
             </div>
-          </div>
+          </aside>
 
-          <div className="flex-1">
-
-            <div
-              className="
-                bg-slate-900/70
-                backdrop-blur-xl
-                border
-                border-slate-800
-                rounded-3xl
-                p-6
-                h-[650px]
-                flex
-                flex-col
-                shadow-2xl
-                shadow-blue-500/10
-              "
-            >
-              <div className="flex-1 overflow-auto space-y-5 mb-5 pr-2">
-                {messages.map((message, index) => (
+          <section className="flex h-[650px] flex-1 flex-col rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl backdrop-blur-xl">
+            <div className="mb-5 flex-1 space-y-5 overflow-auto pr-2">
+              {messages.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}`}
+                  className={
+                    message.role === 'user'
+                      ? 'flex justify-end'
+                      : 'flex justify-start'
+                  }
+                >
                   <div
-                    key={index}
                     className={
                       message.role === 'user'
-                       ? 'flex justify-end'
-                        : 'flex justify-start'
+                        ? 'max-w-[85%] whitespace-pre-wrap rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4'
+                        : 'max-w-[85%] whitespace-pre-wrap rounded-3xl border border-slate-700 bg-slate-800/80 px-5 py-4'
                     }
                   >
-                    <div
-                      className={
-                        message.role === 'user'
-                          ? 'max-w-[80%] rounded-3xl px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600'
-                          : 'max-w-[80%] rounded-3xl px-5 py-4 bg-slate-800/80 border border-slate-700'
-                      }
-                    >
-                      {message.content}
-                    </div>
+                    {message.content}
                   </div>
-                ))}
-              </div>
-
-              <div className="flex gap-4">
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask your AI DevOps assistant..."
-                  className="
-                    flex-1
-                    bg-slate-800/80
-                    border
-                    border-slate-700
-                    rounded-2xl
-                    px-5
-                    py-4
-                    outline-none
-                    focus:border-blue-500
-                    transition
-                  "
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      sendMessage()
-                    }
-                  }}
-                />
-
-                <button
-                  onClick={sendMessage}
-                  className="
-                    bg-gradient-to-r
-                    from-blue-600
-                    to-purple-600
-                    hover:from-blue-500
-                    hover:to-purple-500
-                    rounded-2xl
-                    px-8
-                    py-4
-                    font-semibold
-                    transition
-                  "
-                >
-                  Send
-                </button>
-              </div>
+                </div>
+              ))}
             </div>
 
-          </div>
-
+            <div className="flex gap-3">
+              <input
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Demandez à l'assistant de lister les pods..."
+                disabled={sending}
+                className="flex-1 rounded-2xl border border-slate-700 bg-slate-800/80 px-5 py-4 outline-none transition focus:border-blue-500 disabled:opacity-60"
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    void sendMessage()
+                  }
+                }}
+              />
+              <button
+                onClick={() => void sendMessage()}
+                disabled={sending || !input.trim()}
+                className="rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 font-semibold transition hover:from-blue-500 hover:to-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {sending ? 'Envoi...' : 'Envoyer'}
+              </button>
+            </div>
+          </section>
         </div>
       </div>
     </main>
