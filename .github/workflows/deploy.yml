@@ -1,3 +1,4 @@
+```yaml
 name: Deploy ChatOps Project
 
 on:
@@ -12,6 +13,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -32,9 +34,13 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
+          command_timeout: 30m
           script: |
             set -e
+
             cd /home/ubuntu/chatops
+
+            echo "=== Création du fichier .env ==="
 
             cat > .env <<'EOF'
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
@@ -51,6 +57,31 @@ jobs:
             FRONTEND_PORT=3000
             EOF
 
-            docker compose down
-            docker compose up -d --build
+            echo "=== Vérification des variables obligatoires ==="
+
+            if grep -q '^JWT_SECRET=$' .env; then
+              echo "Erreur : le secret JWT_SECRET est vide."
+              exit 1
+            fi
+
+            if grep -q '^POSTGRES_PASSWORD=$' .env; then
+              echo "Erreur : le secret POSTGRES_PASSWORD est vide."
+              exit 1
+            fi
+
+            echo "=== Arrêt des anciens conteneurs ==="
+
+            docker compose down --remove-orphans
+
+            echo "=== Construction des images Docker ==="
+
+            docker compose build --progress=plain
+
+            echo "=== Démarrage des conteneurs ==="
+
+            docker compose up -d
+
+            echo "=== État des conteneurs ==="
+
             docker compose ps
+```
