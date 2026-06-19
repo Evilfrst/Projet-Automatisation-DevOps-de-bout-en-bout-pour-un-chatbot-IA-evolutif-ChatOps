@@ -1,77 +1,56 @@
-name: CI-CD
+name: CI
 
 on:
   push:
     branches:
       - main
       - develop
+  pull_request:
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
-          pip install pytest
+          pip install pytest httpx
 
-      - name: Run tests
+      - name: Run backend tests
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          python -m pytest -v
+          DATABASE_URL: sqlite:///./ci-chatops.db
+          JWT_SECRET: ci-only-secret
+          OPENAI_API_KEY: test-key
+        run: python -m pytest -v
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build
 
       - name: Build Docker images
-        run: |
-          docker compose build
-
-  deploy:
-    needs: build-test
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Copy files to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOST }}
-          username: ubuntu
-          key: ${{ secrets.SSH_KEY }}
-          source: "."
-          target: "/home/ubuntu/chatops"
-
-      - name: Deploy application via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOST }}
-          username: ubuntu
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            cd /home/ubuntu/chatops
-            sudo docker compose down
-            sudo docker compose up -d --build
-            
-      - name: Create .env file on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-            host: ${{ secrets.HOST }}
-            username: ubuntu
-            key: ${{ secrets.SSH_KEY }}
-            script: |
-              mkdir -p /home/ubuntu/chatops
-              cd /home/ubuntu/chatops
-              cat > .env <<EOF
-              OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-              ENVIRONMENT=production
-              PORT=8000
-              EOF
+        run: docker compose build
