@@ -23,21 +23,22 @@ services:
       - postgres
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-      NEXT_PUBLIC_API_URL: http://35.181.183.50:8000
-    environment:
-    - NEXT_PUBLIC_API_URL=http://35.181.183.50:8000
-        
-      dockerfile: dockerfile
-    container_name: chatops-frontend
+  build:
+    context: ./frontend
+    dockerfile: dockerfile
+    args:
+      NEXT_PUBLIC_API_URL: "http://35.181.183.50:8000"
 
-    ports:
-      - "3000:3000"
+  container_name: chatops-frontend
 
-    depends_on:
-      - backend
+  environment:
+    NEXT_PUBLIC_API_URL: "http://35.181.183.50:8000"
+
+  ports:
+    - "3000:3000"
+
+  depends_on:
+    - backend
 
   postgres:
     image: postgres:16
