@@ -848,6 +848,42 @@ def get_conversation(conversation_id: int):
 
         db.close()
 
+# ==================================================
+# SUMMARY
+# ==================================================
+
+@app.get("/dashboard/summary")
+async def dashboard_summary():
+
+    metrics = get_monitoring_metrics()
+    health = get_cluster_health()
+
+    cpu = "N/D"
+    memory = "N/D"
+
+    try:
+        cpu = metrics["cpu"]["data"]["result"][0]["value"][1]
+    except:
+        pass
+
+    try:
+        memory = metrics["memory"]["data"]["result"][0]["value"][1]
+    except:
+        pass
+
+    return {
+        "cpu": cpu,
+        "memory": memory,
+        "pods": health.get("pods_count", 0),
+        "failed_pods": len(
+            health.get("failed_pods", [])
+        ),
+        "cluster_status": health.get(
+            "status",
+            "unknown"
+        ),
+    }
+
 
 # ==================================================
 # KUBERNETES REST API
