@@ -4,7 +4,7 @@ metadata:
   name: backend
 
 spec:
-  replicas: 2
+  replicas: 1
 
   selector:
     matchLabels:
@@ -18,7 +18,8 @@ spec:
     spec:
       containers:
       - name: backend
-        image: tondockerhub/chatops-backend:latest
+        image: chatops-backend:latest
+        imagePullPolicy: Never
 
         ports:
         - containerPort: 8000
