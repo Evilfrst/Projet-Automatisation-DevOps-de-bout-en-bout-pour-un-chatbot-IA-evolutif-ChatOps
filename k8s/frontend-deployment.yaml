@@ -4,7 +4,7 @@ metadata:
   name: frontend
 
 spec:
-  replicas: 2
+  replicas: 1
 
   selector:
     matchLabels:
@@ -18,7 +18,8 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: tondockerhub/chatops-frontend:latest
+        image: chatops-frontend:latest
+        imagePullPolicy: Never
 
         ports:
         - containerPort: 3000
