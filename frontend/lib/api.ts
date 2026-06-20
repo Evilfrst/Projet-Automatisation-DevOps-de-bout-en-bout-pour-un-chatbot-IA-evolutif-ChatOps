@@ -1,6 +1,6 @@
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:8000'
+  'http://35.181.183.50:8000'
 
 export function apiFetch(
   endpoint: string,
