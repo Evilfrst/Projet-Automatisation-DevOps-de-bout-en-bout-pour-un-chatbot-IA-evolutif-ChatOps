@@ -23,8 +23,9 @@ def test_health():
     assert response.json()["status"] == "healthy"
 
 
-@patch("backend.app.main.client.chat.completions.create")
-def test_chat(mock_create):
+@patch("backend.app.main.openai_client.chat.completions.create")
+@patch("backend.app.main.SessionLocal")
+def test_chat(mock_db, mock_create):
 
     def fake_current_user():
         return SimpleNamespace(
@@ -37,20 +38,15 @@ def test_chat(mock_create):
         main.get_current_user
     ] = fake_current_user
 
+    mock_session = mock_db.return_value
+
     mock_create.return_value.choices = [
-        type(
-            "obj",
-            (object,),
-            {
-                "message": type(
-                    "obj",
-                    (object,),
-                    {
-                        "content": "Bonjour depuis le mock"
-                    }
-                )()
-            }
-        )()
+        SimpleNamespace(
+            message=SimpleNamespace(
+                content="Bonjour depuis le mock",
+                tool_calls=None
+            )
+        )
     ]
 
     try:
