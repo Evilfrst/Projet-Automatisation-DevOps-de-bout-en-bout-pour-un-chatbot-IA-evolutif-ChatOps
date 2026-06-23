@@ -20,8 +20,8 @@ type ConversationHistory = {
 }
 
 type Metrics = {
-  cpu: number | null
-  memory: number | null
+  cpu: number | string | null
+  memory: number | string | null
   pods: number
   running_pods: number
   failed_pods: number
@@ -171,8 +171,21 @@ export default function Home() {
     }
   }
 
-  const formatPercent = (value: number | null) =>
-    value === null ? 'N/D' : `${value.toFixed(1)}%`
+  const formatPercent = (
+    value: number | string | null | undefined,
+) => {
+  if (value === null || value === undefined) {
+    return 'N/D'
+  }
+
+  const num = Number(value)
+
+  if (!Number.isFinite(num)) {
+    return 'N/D'
+  }
+
+  return `${num.toFixed(1)}%`
+}
 
   const clusterLabel =
     metrics.cluster_status === 'healthy'
