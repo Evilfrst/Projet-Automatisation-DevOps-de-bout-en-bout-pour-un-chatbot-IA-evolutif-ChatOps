@@ -133,7 +133,6 @@ services:
 
     ports:
       - "9100:9100"
-  services:
 
   caddy:
     image: caddy:latest
