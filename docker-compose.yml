@@ -133,6 +133,29 @@ services:
 
     ports:
       - "9100:9100"
+  services:
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  caddy_data:
+  caddy_config:
 
 volumes:
   postgres_data:
