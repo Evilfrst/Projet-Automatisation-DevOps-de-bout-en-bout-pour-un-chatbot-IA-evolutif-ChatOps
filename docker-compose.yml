@@ -27,12 +27,11 @@ services:
       context: ./frontend
       dockerfile: dockerfile
       args:
-        NEXT_PUBLIC_API_URL: "http://35.181.183.50:8000"
-
+        NEXT_PUBLIC_API_URL: "https://chatops-ai.fr/api"
     container_name: chatops-frontend
 
     environment:
-      NEXT_PUBLIC_API_URL: "http://35.181.183.50:8000"
+      NEXT_PUBLIC_API_URL: "https://chatops-ai.fr/api"
 
     ports:
       - "3000:3000"
