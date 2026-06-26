@@ -18,7 +18,7 @@ export default function LoginPage() {
 
     try {
       const response = await fetch(
-        'http://35.181.183.50:8000/login',
+        'https://chatops-ai.fr/api/login',
         {
           method: 'POST',
           headers: {
