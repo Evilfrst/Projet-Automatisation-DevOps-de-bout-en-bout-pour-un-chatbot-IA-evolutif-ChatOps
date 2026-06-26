@@ -8,7 +8,7 @@ export default function ChatPage() {
   const [response, setResponse] = useState('')
 
   const sendMessage = async () => {
-     const res = await axios.post('http://35.181.183.50:8000/chat', {
+     const res = await axios.post('https://chatops-ai.fr/api/chat', {
   prompt
 })
 
