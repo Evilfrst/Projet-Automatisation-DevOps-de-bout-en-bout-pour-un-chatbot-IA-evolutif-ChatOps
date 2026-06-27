@@ -272,12 +272,12 @@ async def root():
     }
 
 
-@app.get("/health")
+@app.get("/api/health")
 async def health():
     return {"status": "healthy"}
 
 
-@app.post("/register")
+@app.post("/api/register")
 def register(data: RegisterRequest):
     username = data.username.strip()
     email = data.email.strip().lower()
@@ -341,7 +341,7 @@ def register(data: RegisterRequest):
         db.close()
 
 
-@app.post("/login")
+@app.post("/api/login")
 def login(data: LoginRequest):
     db = SessionLocal()
 
@@ -380,12 +380,12 @@ def login(data: LoginRequest):
 # CURRENT USER AND ROLE MATRIX
 # ==================================================
 
-@app.get("/me")
+@app.get("/api/me")
 def me(current_user: User = Depends(get_current_user)):
     return user_to_dict(current_user)
 
 
-@app.get("/roles")
+@app.get("/api/roles")
 def roles_matrix(current_user: User = Depends(get_current_user)):
     return {
         role: {
@@ -400,7 +400,7 @@ def roles_matrix(current_user: User = Depends(get_current_user)):
 # INCIDENTS
 # ==================================================
 
-@app.post("/incidents")
+@app.post("/api/incidents")
 def create_incident(
     data: IncidentCreateRequest,
     current_user: User = Depends(
@@ -455,7 +455,7 @@ def list_incidents(
         db.close()
 
 
-@app.patch("/incidents/{incident_id}")
+@app.patch("/api/incidents/{incident_id}")
 def update_incident(
     incident_id: int,
     data: IncidentUpdateRequest,
@@ -509,7 +509,7 @@ def update_incident(
         db.close()
 
 
-@app.delete("/incidents/{incident_id}")
+@app.delete("/api/incidents/{incident_id}")
 def delete_incident(
     incident_id: int,
     current_user: User = Depends(
@@ -626,7 +626,7 @@ def execute_function(
 # CHAT
 # ==================================================
 
-@app.post("/chat")
+@app.post("/api/chat")
 async def chat(
     data: ChatRequest,
     current_user: User = Depends(
@@ -753,7 +753,7 @@ async def chat(
 # HISTORY
 # ==================================================
 
-@app.get("/history")
+@app.get("/api/history")
 def get_history(
     current_user: User = Depends(
         require_permission("history:read:own")
@@ -787,7 +787,7 @@ def get_history(
         db.close()
 
 
-@app.get("/history/{conversation_id}")
+@app.get("/api/history/{conversation_id}")
 def get_conversation(
     conversation_id: int,
     current_user: User = Depends(
@@ -836,7 +836,7 @@ def get_conversation(
 # AUDIT
 # ==================================================
 
-@app.get("/audit")
+@app.get("/api/audit")
 def get_audit_logs(
     current_user: User = Depends(
         require_permission("audit:read")
@@ -869,7 +869,7 @@ def get_audit_logs(
 # MONITORING
 # ==================================================
 
-@app.get("/monitoring/metrics")
+@app.get("/api/monitoring/metrics")
 def monitoring_metrics(
     current_user: User = Depends(
         require_permission("monitoring:read")
@@ -883,7 +883,7 @@ def monitoring_metrics(
     }
 
 
-@app.get("/dashboard/summary")
+@app.get("/api/dashboard/summary")
 def dashboard_summary(
     current_user: User = Depends(
         require_permission("monitoring:read")
@@ -896,7 +896,7 @@ def dashboard_summary(
 # KUBERNETES
 # ==================================================
 
-@app.get("/k8s/pods")
+@app.get("/api/k8s/pods")
 def get_pods(
     current_user: User = Depends(
         require_permission("k8s:diagnose")
@@ -905,7 +905,7 @@ def get_pods(
     return list_pods()
 
 
-@app.get("/k8s/deployments")
+@app.get("/api/k8s/deployments")
 def get_deployments(
     current_user: User = Depends(
         require_permission("k8s:diagnose")
@@ -914,7 +914,7 @@ def get_deployments(
     return list_deployments()
 
 
-@app.get("/k8s/services")
+@app.get("/api/k8s/services")
 def get_services(
     current_user: User = Depends(
         require_permission("k8s:diagnose")
@@ -923,7 +923,7 @@ def get_services(
     return list_services()
 
 
-@app.get("/k8s/failed-pods")
+@app.get("/api/k8s/failed-pods")
 def get_failed_pods(
     current_user: User = Depends(
         require_permission("k8s:diagnose")
@@ -932,7 +932,7 @@ def get_failed_pods(
     return failed_pods()
 
 
-@app.get("/k8s/health")
+@app.get("/api/k8s/health")
 def kubernetes_health(
     current_user: User = Depends(
         require_permission("k8s:diagnose")
@@ -952,7 +952,7 @@ def kubernetes_health(
     }
 
 
-@app.get("/k8s/logs")
+@app.get("/api/k8s/logs")
 def get_logs(
     namespace: str,
     pod_name: str,
@@ -963,7 +963,7 @@ def get_logs(
     return pod_logs(namespace, pod_name)
 
 
-@app.post("/k8s/restart")
+@app.post("/api/k8s/restart")
 def restart(
     namespace: str,
     deployment_name: str,
@@ -986,7 +986,7 @@ def restart(
 # USER ADMINISTRATION
 # ==================================================
 
-@app.get("/admin/users")
+@app.get("/api/admin/users")
 def list_users(
     current_user: User = Depends(
         require_permission("users:read")
@@ -1001,7 +1001,7 @@ def list_users(
         db.close()
 
 
-@app.patch("/admin/users/{user_id}/role")
+@app.patch("/api/admin/users/{user_id}/role")
 def update_user_role(
     user_id: int,
     data: RoleUpdateRequest,
