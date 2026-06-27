@@ -1,6 +1,6 @@
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  'https://chatops-ai.fr/api'
+  '/api'
 
 export function apiFetch(
   endpoint: string,
