@@ -12,6 +12,7 @@ from openai import OpenAI
 from prometheus_client import Counter
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
+from sqlalchemy import func, or_
 
 from .audit_service import save_audit_log
 from .auth import hash_password, verify_password
@@ -343,16 +344,57 @@ def register(data: RegisterRequest):
 
 @app.post("/api/login")
 def login(data: LoginRequest):
+    """Authentifie un utilisateur sans modifier ses données PostgreSQL.
+
+    Le nom d'utilisateur est comparé sans tenir compte des majuscules,
+    minuscules ou espaces accidentels. L'adresse e-mail peut également
+    être utilisée. Le rôle et le hash du mot de passe restent inchangés.
+    """
     db = SessionLocal()
+    identifier = data.username.strip().lower()
 
     try:
         user = (
             db.query(User)
-            .filter(User.username == data.username.strip())
+            .filter(
+                or_(
+                    func.lower(func.trim(User.username)) == identifier,
+                    func.lower(func.trim(User.email)) == identifier,
+                )
+            )
             .first()
         )
 
-        if not user or not verify_password(data.password, user.password_hash):
+        if user is None:
+            logger.warning(
+                "Connexion refusée : utilisateur introuvable pour %r",
+                data.username.strip(),
+            )
+            raise HTTPException(
+                status_code=401,
+                detail="Identifiants incorrects",
+            )
+
+        try:
+            password_is_valid = verify_password(
+                data.password,
+                user.password_hash,
+            )
+        except Exception:
+            logger.exception(
+                "Format de hash non reconnu pour l'utilisateur %s",
+                user.username,
+            )
+            raise HTTPException(
+                status_code=401,
+                detail="Identifiants incorrects",
+            )
+
+        if not password_is_valid:
+            logger.warning(
+                "Connexion refusée : mot de passe incorrect pour %s",
+                user.username,
+            )
             raise HTTPException(
                 status_code=401,
                 detail="Identifiants incorrects",
