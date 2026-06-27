@@ -6,9 +6,6 @@ services:
       dockerfile: dockerfile
     container_name: chatops-backend
 
-    ports:
-      - "8000:8000"
-
     env_file:
       - .env
 
@@ -22,39 +19,79 @@ services:
     depends_on:
       - postgres
 
+    expose:
+      - "8000"
+
+    restart: unless-stopped
+
+    networks:
+      - chatops-net
+
+
   frontend:
     build:
       context: ./frontend
       dockerfile: dockerfile
       args:
         NEXT_PUBLIC_API_URL: "https://chatops-ai.fr/api"
+
     container_name: chatops-frontend
 
     environment:
       NEXT_PUBLIC_API_URL: "https://chatops-ai.fr/api"
 
-    ports:
-      - "3000:3000"
-
     depends_on:
       - backend
-      
+
+    expose:
+      - "3000"
+
+    restart: unless-stopped
+
+    networks:
+      - chatops-net
+
+
   postgres:
     image: postgres:16
     container_name: postgres
 
-    restart: always
+    restart: unless-stopped
 
     environment:
       POSTGRES_DB: chatops
       POSTGRES_USER: chatops
       POSTGRES_PASSWORD: chatops123
 
-    ports:
-      - "5432:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+    networks:
+      - chatops-net
+
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
+    depends_on:
+      - frontend
+      - backend
+
+    networks:
+      - chatops-net
+
 
   prometheus:
     image: prom/prometheus
@@ -69,6 +106,10 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
 
+    networks:
+      - chatops-net
+
+
   alertmanager:
     image: prom/alertmanager
     container_name: alertmanager
@@ -80,6 +121,10 @@ services:
 
     volumes:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+
+    networks:
+      - chatops-net
+
 
   grafana:
     image: grafana/grafana
@@ -98,6 +143,10 @@ services:
       - prometheus
       - loki
 
+    networks:
+      - chatops-net
+
+
   loki:
     image: grafana/loki:latest
     container_name: loki
@@ -108,6 +157,10 @@ services:
       - "3100:3100"
 
     command: -config.file=/etc/loki/local-config.yaml
+
+    networks:
+      - chatops-net
+
 
   promtail:
     image: grafana/promtail:latest
@@ -123,6 +176,10 @@ services:
     depends_on:
       - loki
 
+    networks:
+      - chatops-net
+
+
   node-exporter:
     image: prom/node-exporter:latest
     container_name: chatops-node-exporter
@@ -134,25 +191,16 @@ services:
     ports:
       - "9100:9100"
 
-  caddy:
-    image: caddy:latest
-    container_name: caddy
-    restart: unless-stopped
+    networks:
+      - chatops-net
 
-    ports:
-      - "80:80"
-      - "443:443"
-
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-
-    depends_on:
-      - frontend
-      - backend
 
 volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+
+
+networks:
+  chatops-net:
+    driver: bridge
