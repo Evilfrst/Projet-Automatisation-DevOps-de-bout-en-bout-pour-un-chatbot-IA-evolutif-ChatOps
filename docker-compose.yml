@@ -1,205 +1,158 @@
 services:
-
   backend:
     build:
       context: ./backend
       dockerfile: dockerfile
     container_name: chatops-backend
-
     env_file:
       - .env
-
     environment:
+      # Cette valeur reste identique au projet d'origine afin de réutiliser
+      # la même base PostgreSQL et les mêmes utilisateurs déjà enregistrés.
       DATABASE_URL: postgresql://chatops:chatops123@postgres:5432/chatops
       KUBECONFIG: /root/.kube/config
-
     volumes:
       - /home/ubuntu/.kube/config-docker:/root/.kube/config:ro
-
     depends_on:
-      - postgres
-
+      postgres:
+        condition: service_healthy
     expose:
       - "8000"
-
     restart: unless-stopped
-
     networks:
       - chatops-net
-
 
   frontend:
     build:
       context: ./frontend
       dockerfile: dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: "https://chatops-ai.fr/api"
-
     container_name: chatops-frontend
-
-    environment:
-      NEXT_PUBLIC_API_URL: "https://chatops-ai.fr/api"
-
     depends_on:
       - backend
-
     expose:
       - "3000"
-
     restart: unless-stopped
-
     networks:
       - chatops-net
-
 
   postgres:
     image: postgres:16
     container_name: postgres
-
     restart: unless-stopped
-
     environment:
       POSTGRES_DB: chatops
       POSTGRES_USER: chatops
       POSTGRES_PASSWORD: chatops123
-
     volumes:
+      # Ce volume nommé conserve les utilisateurs, rôles, mots de passe,
+      # conversations, incidents et journaux déjà présents.
       - postgres_data:/var/lib/postgresql/data
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatops -d chatops"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
       - chatops-net
 
-
   caddy:
-    image: caddy:latest
+    image: caddy:2-alpine
     container_name: caddy
-
     restart: unless-stopped
-
     ports:
       - "80:80"
       - "443:443"
-
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-
     depends_on:
       - frontend
       - backend
-
     networks:
       - chatops-net
-
 
   prometheus:
     image: prom/prometheus
     container_name: prometheus
     profiles:
       - monitoring
-
     ports:
       - "9090:9090"
-
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
-
     networks:
       - chatops-net
-
 
   alertmanager:
     image: prom/alertmanager
     container_name: alertmanager
     profiles:
       - monitoring
-
     ports:
       - "9093:9093"
-
     volumes:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-
     networks:
       - chatops-net
-
 
   grafana:
     image: grafana/grafana
     container_name: grafana
     profiles:
       - monitoring
-
     ports:
       - "3001:3000"
-
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
-
     depends_on:
       - prometheus
       - loki
-
     networks:
       - chatops-net
-
 
   loki:
     image: grafana/loki:latest
     container_name: loki
     profiles:
       - monitoring
-
     ports:
       - "3100:3100"
-
     command: -config.file=/etc/loki/local-config.yaml
-
     networks:
       - chatops-net
-
 
   promtail:
     image: grafana/promtail:latest
     container_name: promtail
     profiles:
       - monitoring
-
     volumes:
       - /var/log:/var/log
-
     command: -config.file=/etc/promtail/config.yml
-
     depends_on:
       - loki
-
     networks:
       - chatops-net
-
 
   node-exporter:
     image: prom/node-exporter:latest
     container_name: chatops-node-exporter
     profiles:
       - monitoring
-
     restart: unless-stopped
-
     ports:
       - "9100:9100"
-
     networks:
       - chatops-net
 
-
 volumes:
+  # Ne pas renommer et ne pas supprimer ce volume sur le serveur existant.
   postgres_data:
   caddy_data:
   caddy_config:
-
 
 networks:
   chatops-net:
