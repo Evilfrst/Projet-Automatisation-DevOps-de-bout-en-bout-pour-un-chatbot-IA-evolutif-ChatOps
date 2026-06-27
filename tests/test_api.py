@@ -17,7 +17,7 @@ def test_root():
 
 
 def test_health():
-    response = client.get("/health")
+    response = client.get("/api/health")
 
     assert response.status_code == 200
     assert response.json()["status"] == "healthy"
@@ -51,7 +51,7 @@ def test_chat(mock_db, mock_create):
 
     try:
         response = client.post(
-            "/chat",
+            "/api/chat",
             json={"prompt": "hello"}
         )
 
