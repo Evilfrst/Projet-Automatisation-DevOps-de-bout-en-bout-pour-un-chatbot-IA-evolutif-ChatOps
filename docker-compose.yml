@@ -77,8 +77,8 @@ services:
     container_name: prometheus
     profiles:
       - monitoring
-    ports:
-      - "9090:9090"
+    expose:
+      - "9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
@@ -118,8 +118,8 @@ services:
     container_name: loki
     profiles:
       - monitoring
-    ports:
-      - "3100:3100"
+    expose:
+      - "3100"
     command: -config.file=/etc/loki/local-config.yaml
     networks:
       - chatops-net
